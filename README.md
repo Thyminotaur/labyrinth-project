@@ -19,3 +19,9 @@ No module named "cv2.aruco" : https://stackoverflow.com/questions/45972357/pytho
 ## Localize ArUco
 
 ![localize](data/localize.png)
+
+## Detect Labyrinth
+
+![detect labyrinth](data/detect_labyrinth.png)
+
+In ~ 12 ms
