@@ -34,7 +34,7 @@ def localize_thymio(img):
   return (c, center, angle)
 
 
-def detect_labyrinth(img):
+def detect_labyrinth(img, wall_size):
   h,w = img.shape
 
   # Localize
@@ -44,13 +44,16 @@ def detect_labyrinth(img):
   cv.drawContours(img, [c], 0, 255, -1)
 
   # Threshold
-  _, th = cv.threshold(img,0,255,cv.THRESH_BINARY+cv.THRESH_OTSU)
-  # th = cv.adaptiveThreshold(img,255,cv.ADAPTIVE_THRESH_GAUSSIAN_C,\
-      # cv.THRESH_BINARY,31,2)
+  _, th = cv.threshold(img,0,255,cv.THRESH_BINARY_INV+cv.THRESH_OTSU)
 
-  # Remove grid
-  # th = cv.medianBlur(th,11)
-  # th = cv.bilateralFilter(th,9,11,11)
+  # Remove noise
+  kernel = np.ones((5,5),np.uint8)
+  th = cv.morphologyEx(th, cv.MORPH_OPEN, kernel)
+
+  # Dilate walls
+  kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE,(wall_size,wall_size))
+
+  th = cv.dilate(th,kernel,iterations = 1)
 
   # Extract grid
   desired_w = 100
