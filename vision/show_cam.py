@@ -3,12 +3,11 @@ import cv2 as cv
 import cv2.aruco as aruco
 from vision_utils import *
 
-cam = cv.VideoCapture(0)
+cam = cv.VideoCapture(0, cv.CAP_DSHOW)
 
 while True:
   ret_val, img = cam.read()
-  gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-  (c, center, angle) = localize_thymio(gray)
+  (c, center, angle) = localize_thymio(img)
   if c is not None:
     for i in range(4):
       cv.line(img, c[i], c[(i+1)%4], (255, 0, 0), 2)

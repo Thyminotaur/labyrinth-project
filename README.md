@@ -25,3 +25,9 @@ No module named "cv2.aruco" : https://stackoverflow.com/questions/45972357/pytho
 ![detect labyrinth](data/detect_labyrinth.png)
 
 In ~ 12 ms
+
+## Detect corners
+
+![original corners](../data/aruco_corners.png)
+
+![corners cropped](../data/aruco_corners_crop.png)
