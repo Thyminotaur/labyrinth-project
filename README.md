@@ -28,6 +28,6 @@ In ~ 12 ms
 
 ## Detect corners
 
-![original corners](../data/aruco_corners.png)
+![original corners](data/aruco_corners.png)
 
-![corners cropped](../data/aruco_corners_crop.png)
+![corners cropped](data/aruco_corners_crop.png)
