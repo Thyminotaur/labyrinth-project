@@ -16,7 +16,7 @@ def localize_thymio(img):
   if len(corners) == 1:
     c = np.int32(corners[0][0])
   else:
-    return None
+    return (None, None, None)
 
 
   # Compute center
