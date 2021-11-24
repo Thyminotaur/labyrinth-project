@@ -8,12 +8,17 @@ import navigation.nav_global_utils as navG
 # _,start,_ = localize_thymio(.............)
 
 
-start = (2,2)
-goal = (8,8)
 labyrinth = np.zeros((11,11), dtype=int)
 labyrinth[5,1:10] = 1
 labyrinth[1:10,5] = 1
-global_path = navG.A_Star(start, goal, labyrinth)
+
+start = (2,2)
+goal = (8,8)
+
+# cost of motion: [straight, turn]
+cost = [1,5]
+
+global_path = navG.A_Star(start, goal, labyrinth, cost)
 path = [elem[0] for elem in global_path]
 motion = [elem[1] for elem in global_path]
 

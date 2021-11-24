@@ -1,23 +1,8 @@
 import numpy as np
 
-def create_nodes_ID(grid):
-    width,height = grid.shape
-    x, y = np.mgrid[0:width:1, 0:height:1]
-    pos = np.empty(x.shape + (2,))
-    pos[:, :, 0] = x
-    pos[:, :, 1] = y
-    pos = np.reshape(pos, (x.shape[0] * x.shape[1], 2))
-    nodes_ID = list([(int(x[0]), int(x[1])) for x in pos])
-    return nodes_ID
-
-def heuristic_cost(goal_ID, nodes_ID, norm_order):
-    h = np.linalg.norm(np.asarray(nodes_ID) - np.asarray(goal_ID), ord=norm_order, axis=-1)
-    h = dict(zip(nodes_ID, h))
-    return h
-
-def motion_cost(cameFrom, current, next):
-    straight_cost = 1
-    turn_cost = 1*straight_cost
+def motion_cost(cameFrom, current, next, cost):
+    straight_cost = cost[0]
+    turn_cost = cost[1]*straight_cost
 
     previous = cameFrom.get(current, current)
     prev_motion = np.asarray(current) - np.asarray(previous)
@@ -29,6 +14,11 @@ def motion_cost(cameFrom, current, next):
         cost = turn_cost
     return cost
 
+def heuristic_cost(goal_ID, nodes_ID, norm_order):
+    h = np.linalg.norm(np.asarray(nodes_ID) - np.asarray(goal_ID), ord=norm_order, axis=-1)
+    h = dict(zip(nodes_ID, h))
+    return h
+
 def reconstruct_path(cameFrom, current):
     total_path = [[list(current),[0,0]]]
     while current in cameFrom.keys():
@@ -37,6 +27,16 @@ def reconstruct_path(cameFrom, current):
         total_path.insert(0, [list(cameFrom[current]), motion.tolist()])
         current=cameFrom[current]
     return total_path
+
+def create_nodes_ID(grid):
+    width,height = grid.shape
+    x, y = np.mgrid[0:width:1, 0:height:1]
+    pos = np.empty(x.shape + (2,))
+    pos[:, :, 0] = x
+    pos[:, :, 1] = y
+    pos = np.reshape(pos, (x.shape[0] * x.shape[1], 2))
+    nodes_ID = list([(int(x[0]), int(x[1])) for x in pos])
+    return nodes_ID
 
 def get_movements_4n():
     """
@@ -64,7 +64,7 @@ def get_movements_8n():
             (1, -1)]
 
 
-def A_Star(start, goal, occupancy_grid, movement_type="4N"):
+def A_Star(start, goal, occupancy_grid, cost, movement_type="4N"):
 
     if movement_type == '4N':
         movements = get_movements_4n()
@@ -127,7 +127,7 @@ def A_Star(start, goal, occupancy_grid, movement_type="4N"):
 
             # motion cost is the cost from current to neighbor
             # tentative_gScore is the cost from start to the neighbor through current
-            tentative_gScore = gScore[current] + motion_cost(cameFrom, current, neighbor)
+            tentative_gScore = gScore[current] + motion_cost(cameFrom, current, neighbor, cost)
 
             if neighbor not in openSet:
                 openSet.append(neighbor)
