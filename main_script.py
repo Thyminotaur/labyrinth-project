@@ -51,6 +51,7 @@ def prog():
 
   while M:
     ret_val, img = cam.read()
+    img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
     dst = crop_labyrinth(img, M)
 
