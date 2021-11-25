@@ -30,12 +30,16 @@ while True:
   if M is None:
     break
 
-# Get the labyrinth map
 if M:
+  # Get the labyrinth map
   ret_val, img = cam.read()
   dst = crop_labyrinth(img, M)
   dst_gray = cv.cvtColor(dst, cv.COLOR_BGR2GRAY)
   labyrinth_map = detect_labyrinth(dst_gray, 130)
+
+  # Localize thymio
+  detected = detect_aruco(dst_gray)
+  (_, center, _) = localize_thymio(dst_gray, detected)
 
   # Compute the trajectory 
   # TODO [David]
