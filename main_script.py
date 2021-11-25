@@ -2,6 +2,18 @@ import numpy as np
 import cv2 as cv
 from vision.vision_utils import *
 from navigation.nav_global_utils import *
+from tdmclient import ClientAsync
+
+# motors
+def motors(left, right):
+    return {
+        "motor.left.target": [left],
+        "motor.right.target": [right],
+    }
+
+# init tdm client
+# client = ClientAsync()
+# node = await client.wait_for_node()
 
 # Open Camera
 cam = cv.VideoCapture(0, cv.CAP_DSHOW)
@@ -29,34 +41,42 @@ if M:
   # Compute the trajectory 
   # TODO [David]
 
-while M:
-  ret_val, img = cam.read()
+# async def prog():
+def prog():
+  # node = await client.wait_for_node()
+  # await node.lock()
 
-  dst = crop_labyrinth(img, M)
+  while M:
+    ret_val, img = cam.read()
 
-  # Localize thymio
-  detected = detect_aruco(dst)
-  (_, center, angle) = localize_thymio(dst, detected)
+    dst = crop_labyrinth(img, M)
 
-  # Do obstacle avoidance
-  # TODO [Sylvain]
+    # Localize thymio
+    detected = detect_aruco(dst)
+    (_, center, angle) = localize_thymio(dst, detected)
 
-  if center is not None:
-    # Do trajectory with position
-    # TODO [Stephen]
-    pass
-  else:
-    # Do trajectory without position information
-    # TODO [Stephen]
-    pass
+    # Do obstacle avoidance
+    # TODO [Sylvain]
 
-  # cv.imshow('my webcam', img)
-  cv.imshow('transformed', dst)
-  # cv.imshow('labyrinth', laby)
+    if center is not None:
+      # Do trajectory with position
+      # TODO [Stephen]
+      pass
+    else:
+      # Do trajectory without position information
+      # TODO [Stephen]
+      pass
 
-  key = cv.waitKey(1)
-  if key == 27: 
-    break  # esc to quit
+    # cv.imshow('my webcam', img)
+    cv.imshow('transformed', dst)
+    # cv.imshow('labyrinth', laby)
 
-cv.destroyAllWindows()
-print("Done!")
+    key = cv.waitKey(1)
+    if key == 27: 
+      break  # esc to quit
+
+  # await node.unlock()
+  cv.destroyAllWindows()
+
+# client.run_async_program(prog)
+prog()
