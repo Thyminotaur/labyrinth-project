@@ -8,15 +8,15 @@ arucoDict = aruco.Dictionary_get(dict_id)
 arucoParams = cv.aruco.DetectorParameters_create()
 
 ## A0 paper ratio
-res_w = 84*2
-res_h = 118*2
+res_w = 720
+res_h = 1280
 
 # Corners dictionary
 corner_ids = {
-    10: 0,
-    8: 1,
-    15: 3,
-    6: 2,
+    10: 3,
+    8: 2,
+    15: 0,
+    6: 1,
 }
 
 # Ids
@@ -37,7 +37,7 @@ def get_pos_aruco(img, detected, search_id):
       c = corners[i][0]
       if id[0] == search_id:
         center = (c[0]+c[1]+c[2]+c[3])/4
-        return center, c
+        return (center, c)
   return (None, None)
 
 # Given the ID, gives the position, angle of the Thymio
@@ -46,7 +46,7 @@ def localize_thymio(img, detected):
   # Detect aruco
   (center, c) = get_pos_aruco(img, detected, thymio_id)
 
-  if not center:
+  if center is None:
     return (None, None, None)
 
   # c[0]        TOP LEFT
