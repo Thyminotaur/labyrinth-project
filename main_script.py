@@ -13,7 +13,6 @@ def motors(left, right):
 
 # init tdm client
 # client = ClientAsync()
-# node = await client.wait_for_node()
 
 # Open Camera
 cam = cv.VideoCapture(0, cv.CAP_DSHOW)
