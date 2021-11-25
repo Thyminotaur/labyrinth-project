@@ -25,14 +25,21 @@ while True:
 
   dst = crop_labyrinth(img, M)
 
+  # laby = detect_labyrinth(dst, 100)
   detected = detect_aruco(dst)
   (_, center, angle) = localize_thymio(dst, detected)
 
   if center is not None:
     cv.drawMarker(dst, np.int32(center), (0, 0, 255))
+    forward = np.array([np.sin(angle)*40, np.cos(angle)*40], dtype=np.int32)
+    cv.line(dst, np.int32(center), np.int32(center+forward), (255, 0, 0), 2)
 
-  cv.imshow('my webcam', img)
+  dst_gray = cv.cvtColor(dst, cv.COLOR_BGR2GRAY)
+  laby = detect_labyrinth(dst_gray, 100)
+
+  # cv.imshow('my webcam', img)
   cv.imshow('transformed', dst)
+  cv.imshow('labyrinth', laby)
 
   key = cv.waitKey(1)
   if key == ord('c'):
