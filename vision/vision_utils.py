@@ -84,27 +84,38 @@ def detect_labyrinth(img, wall_size):
   detected = detect_aruco(img)
   erase_aruco(img, detected)
 
+
   # Threshold
   _, th = cv.threshold(img,0,255,cv.THRESH_BINARY_INV+cv.THRESH_OTSU)
 
   # Remove noise
-  kernel = np.ones((5,5),np.uint8)
-  th = cv.morphologyEx(th, cv.MORPH_OPEN, kernel)
+  # kernel = np.ones((10,10),np.uint8)
+  # th = cv.morphologyEx(th, cv.MORPH_OPEN, kernel)
+
+  # Detect connected components
+  num_labels, labels, stats, _ = cv.connectedComponentsWithStats(th, 8, cv.CV_32S)
+  sort_ind = np.argsort(stats[:, cv.CC_STAT_AREA])
+
+  # Pick two biggest components
+  # -1 is all the components
+  result = np.zeros_like(th)
+  result[labels == sort_ind[-2]] = 255
+  result[labels == sort_ind[-3]] = 255
 
   # Dilate walls
   kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE,(wall_size,wall_size))
 
-  th = cv.dilate(th,kernel,iterations = 1)
+  result = cv.dilate(result,kernel,iterations = 1)
 
   # Extract grid
-  desired_w = 100
-  desired_h = (desired_w * h) // w
+  # desired_w = 100
+  # desired_h = (desired_w * h) // w
 
   # Extract grid cells
-  th = cv.resize(th, (desired_w, desired_h))
-  _, th = cv.threshold(th,0,255,cv.THRESH_BINARY+cv.THRESH_OTSU)
+  # th = cv.resize(th, (desired_w, desired_h))
+  # _, th = cv.threshold(th,0,255,cv.THRESH_BINARY+cv.THRESH_OTSU)
 
-  return th
+  return result
 
 # Get perspective transform from img from ArUco corners
 # Returns none if corners are not detected

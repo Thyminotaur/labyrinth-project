@@ -35,13 +35,16 @@ while True:
     cv.line(dst, np.int32(center), np.int32(center+forward), (255, 0, 0), 2)
 
   dst_gray = cv.cvtColor(dst, cv.COLOR_BGR2GRAY)
-  laby = detect_labyrinth(dst_gray, 100)
+  laby = detect_labyrinth(dst_gray, 130)
 
   # cv.imshow('my webcam', img)
   cv.imshow('transformed', dst)
   cv.imshow('labyrinth', laby)
 
   key = cv.waitKey(1)
+  if key == ord('s'):
+    cv.imwrite('data/big_labyrinth.png', laby)
+
   if key == ord('c'):
     M = None
   if key == 27: 
