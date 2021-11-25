@@ -9,6 +9,8 @@ arucoDict = aruco.Dictionary_get(dict_id)
 
 # Open Camera
 cam = cv.VideoCapture(0, cv.CAP_DSHOW)
+cam.set(cv.CAP_PROP_FRAME_WIDTH, 1280)
+cam.set(cv.CAP_PROP_FRAME_HEIGHT, 720)
 
 while True:
   ret_val, img = cam.read()

@@ -16,11 +16,11 @@ test_scene = cv.resize(test_scene, (w, h))
 
 start = time.time()
 
-result, c, center, angle = detect_labyrinth(test_scene, 100)
+result = detect_labyrinth(test_scene, 100)
 
 result = cv.cvtColor(result, cv.COLOR_GRAY2BGR)
 
-result[center[1], center[0]] = (0, 0, 255)
+# result[center[1], center[0]] = (0, 0, 255)
 
 stop = time.time()
 

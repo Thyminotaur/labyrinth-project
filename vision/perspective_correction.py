@@ -11,6 +11,9 @@ arucoParams = cv.aruco.DetectorParameters_create()
 # Open Camera
 cam = cv.VideoCapture(0, cv.CAP_DSHOW)
 
+cam.set(cv.CAP_PROP_FRAME_WIDTH, 1280)
+cam.set(cv.CAP_PROP_FRAME_HEIGHT, 720)
+
 M = None
 while True:
   if M is None:

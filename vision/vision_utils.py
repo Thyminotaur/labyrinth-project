@@ -68,7 +68,7 @@ def erase_aruco(img, detected):
 
   if corners is not None:
     for i in range(len(corners)):
-      c = corners[i][0]
+      c = np.int32(corners[i][0])
 
       # Remove AruCo
       cv.drawContours(img, [c], 0, 255, -1)
@@ -103,9 +103,6 @@ def detect_labyrinth(img, wall_size):
   # Extract grid cells
   th = cv.resize(th, (desired_w, desired_h))
   _, th = cv.threshold(th,0,255,cv.THRESH_BINARY+cv.THRESH_OTSU)
-
-  center[0] = int(np.round(center[0]*desired_w/w))
-  center[1] = int(np.round(center[1]*desired_h/h))
 
   return th
 
