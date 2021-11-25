@@ -1,13 +1,7 @@
 import numpy as np
 import cv2 as cv
-import cv2.aruco as aruco
 from vision.vision_utils import *
 from navigation.nav_global_utils import *
-
-# Init ArUco parameters
-dict_id = aruco.DICT_6X6_50
-arucoDict = aruco.Dictionary_get(dict_id)
-arucoParams = cv.aruco.DetectorParameters_create()
 
 # Open Camera
 cam = cv.VideoCapture(0, cv.CAP_DSHOW)
