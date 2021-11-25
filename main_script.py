@@ -2,6 +2,7 @@ import numpy as np
 import cv2 as cv
 import cv2.aruco as aruco
 from vision.vision_utils import *
+from navigation.nav_global_utils import *
 
 # Init ArUco parameters
 dict_id = aruco.DICT_6X6_50
@@ -14,39 +15,52 @@ cam = cv.VideoCapture(0, cv.CAP_DSHOW)
 cam.set(cv.CAP_PROP_FRAME_WIDTH, 1280)
 cam.set(cv.CAP_PROP_FRAME_HEIGHT, 720)
 
+# Detect corners
+# Compute camera transformation matrix
 M = None
 while True:
+  M = calibrate_corners(cam)
+  if M is not None:
+    break
   if M is None:
-    M = calibrate_corners(cam)
-    if M is None:
-      break
+    break
 
+# Get the labyrinth map
+if M:
+  ret_val, img = cam.read()
+  dst = crop_labyrinth(img, M)
+  dst_gray = cv.cvtColor(dst, cv.COLOR_BGR2GRAY)
+  labyrinth_map = detect_labyrinth(dst_gray, 130)
+
+  # Compute the trajectory 
+  # TODO [David]
+
+while M:
   ret_val, img = cam.read()
 
   dst = crop_labyrinth(img, M)
 
-  # laby = detect_labyrinth(dst, 100)
+  # Localize thymio
   detected = detect_aruco(dst)
   (_, center, angle) = localize_thymio(dst, detected)
 
-  if center is not None:
-    cv.drawMarker(dst, np.int32(center), (0, 0, 255))
-    forward = np.array([np.sin(angle)*40, np.cos(angle)*40], dtype=np.int32)
-    cv.line(dst, np.int32(center), np.int32(center+forward), (255, 0, 0), 2)
+  # Do obstacle avoidance
+  # TODO [Sylvain]
 
-  dst_gray = cv.cvtColor(dst, cv.COLOR_BGR2GRAY)
-  laby = detect_labyrinth(dst_gray, 130)
+  if center is not None:
+    # Do trajectory with position
+    # TODO [Stephen]
+    pass
+  else:
+    # Do trajectory without position information
+    # TODO [Stephen]
+    pass
 
   # cv.imshow('my webcam', img)
   cv.imshow('transformed', dst)
-  cv.imshow('labyrinth', laby)
+  # cv.imshow('labyrinth', laby)
 
   key = cv.waitKey(1)
-  if key == ord('s'):
-    cv.imwrite('data/big_labyrinth.png', laby)
-
-  if key == ord('c'):
-    M = None
   if key == 27: 
     break  # esc to quit
 

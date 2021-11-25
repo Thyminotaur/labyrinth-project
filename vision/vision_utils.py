@@ -89,8 +89,8 @@ def detect_labyrinth(img, wall_size):
   _, th = cv.threshold(img,0,255,cv.THRESH_BINARY_INV+cv.THRESH_OTSU)
 
   # Remove noise
-  # kernel = np.ones((10,10),np.uint8)
-  # th = cv.morphologyEx(th, cv.MORPH_OPEN, kernel)
+  kernel = np.ones((10,10),np.uint8)
+  th = cv.morphologyEx(th, cv.MORPH_OPEN, kernel)
 
   # Detect connected components
   num_labels, labels, stats, _ = cv.connectedComponentsWithStats(th, 8, cv.CV_32S)
@@ -104,16 +104,7 @@ def detect_labyrinth(img, wall_size):
 
   # Dilate walls
   kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE,(wall_size,wall_size))
-
   result = cv.dilate(result,kernel,iterations = 1)
-
-  # Extract grid
-  # desired_w = 100
-  # desired_h = (desired_w * h) // w
-
-  # Extract grid cells
-  # th = cv.resize(th, (desired_w, desired_h))
-  # _, th = cv.threshold(th,0,255,cv.THRESH_BINARY+cv.THRESH_OTSU)
 
   return result
 
