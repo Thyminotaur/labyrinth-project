@@ -1,41 +1,60 @@
 import numpy as np
 
-def motion_cost(cameFrom, current, next, cost):
-    straight_cost = cost[0]
-    turn_cost = cost[1]*straight_cost
+def motion_cost(previous, current, next, defined_cost):
+    straight_cost = defined_cost[0]
+    diag_cost = defined_cost[1]
+    turn_cost = defined_cost[2]
 
-    previous = cameFrom.get(current, current)
     prev_motion = np.asarray(current) - np.asarray(previous)
     current_motion = np.asarray(next) - np.asarray(current)
 
-    if np.array_equal(prev_motion, current_motion) or np.array_equal(prev_motion, [0,0]): # going straight
+    if current_motion.all():
+        cost = diag_cost
+    else:
         cost = straight_cost
-    else: # turning
-        cost = turn_cost
+
+    if not(np.array_equal(prev_motion, current_motion)) and not( np.array_equal(prev_motion, [0,0])): # turning
+        cost = cost + turn_cost
+
     return cost
 
 def heuristic_cost(goal_ID, nodes_ID, norm_order):
     h = np.linalg.norm(np.asarray(nodes_ID) - np.asarray(goal_ID), ord=norm_order, axis=-1)
-    h = dict(zip(nodes_ID, h))
-    return h
+    return dict(zip(nodes_ID, h))
+
+def find_exit(grid):
+    mask = np.zeros_like(grid, dtype=bool)
+    mask[:, 0] = True
+    mask[:, -1] = True
+    mask[0, :] = True
+    mask[-1, :] = True
+
+    grid_frame = np.ma.MaskedArray(grid, ~mask)
+
+    exit = np.argwhere(grid_frame == 0)
+
+    return [tuple(elem) for elem in exit]
 
 def reconstruct_path(cameFrom, current):
-    total_path = [[list(current),[0,0]]]
+    total_path = [current]
     while current in cameFrom.keys():
         # Add where the current node came from to the start of the list
-        motion = np.asarray(current) - np.asarray(cameFrom[current])
-        total_path.insert(0, [list(cameFrom[current]), motion.tolist()])
+        total_path.append(cameFrom[current])
         current=cameFrom[current]
+    # reverse for global coords instead of matrix index: col = x, row = y
+    total_path = [(x, y) for y, x in total_path]
+    print("Length path = ", len(total_path))
     return total_path
 
 def create_nodes_ID(grid):
-    width,height = grid.shape
-    x, y = np.mgrid[0:width:1, 0:height:1]
-    pos = np.empty(x.shape + (2,))
-    pos[:, :, 0] = x
-    pos[:, :, 1] = y
-    pos = np.reshape(pos, (x.shape[0] * x.shape[1], 2))
-    nodes_ID = list([(int(x[0]), int(x[1])) for x in pos])
+    height, width = grid.shape
+    nodes_ID = [(row, col) for row in range(height) for col in range(width)]
+    # x, y = np.mgrid[0:height:1, 0:width:1] # reverse order as indexing matrix is different than x,y coords
+    # pos = np.empty(x.shape + (2,))
+    # pos[:, :, 0] = x
+    # pos[:, :, 1] = y
+    # pos = np.reshape(pos, (x.shape[0] * x.shape[1], 2))
+    # nodes_ID = list([(int(x[0]), int(x[1])) for x in pos])
     return nodes_ID
 
 def get_movements_4n():
@@ -75,12 +94,17 @@ def A_Star(start, goal, occupancy_grid, cost, movement_type="4N"):
     else:
         raise ValueError('Unknown movement')
 
+    # start from the goal towards the start
+    tmp_start = start
+    start = goal
+    goal = tmp_start
+
     nodes_ID = create_nodes_ID(occupancy_grid)
     h = heuristic_cost(goal, nodes_ID, LpNorm)
 
     # The set of visited nodes that need to be (re-)expanded, i.e. for which the neighbors need to be explored
     # Initially, only the start node is known.
-    openSet = [start]
+    openSet = start
 
     # The set of visited nodes that no longer need to be expanded.
     closedSet = []
@@ -90,23 +114,25 @@ def A_Star(start, goal, occupancy_grid, cost, movement_type="4N"):
 
     # For node n, gScore[n] is the cost of the cheapest path from start to n currently known.
     gScore = dict(zip(nodes_ID, [np.inf for x in range(len(nodes_ID))]))
-    gScore[start] = 0
 
     # For node n, fScore[n] := gScore[n] + h(n). map with default value of Infinity
     fScore = dict(zip(nodes_ID, [np.inf for x in range(len(nodes_ID))]))
-    fScore[start] = h[start]
+    for node in openSet:
+        gScore[node] = 0
+        fScore[node] = h[node]
 
+    it = 1
     # while there are still elements to investigate
     while openSet != []:
-
         # the node in openSet having the lowest fScore[] value
         fScore_openSet = {key: val for (key, val) in fScore.items() if key in openSet}
         current = min(fScore_openSet, key=fScore_openSet.get)
         del fScore_openSet
 
         # If the goal is reached, reconstruct and return the obtained path
-        if current == goal:
-            return reconstruct_path(cameFrom, current)
+        if current in goal:
+            print("Length ClosedSet = ", len(closedSet))
+            return reconstruct_path(cameFrom, current), closedSet, h
 
         openSet.remove(current)
         closedSet.append(current)
@@ -127,7 +153,7 @@ def A_Star(start, goal, occupancy_grid, cost, movement_type="4N"):
 
             # motion cost is the cost from current to neighbor
             # tentative_gScore is the cost from start to the neighbor through current
-            tentative_gScore = gScore[current] + motion_cost(cameFrom, current, neighbor, cost)
+            tentative_gScore = gScore[current] + motion_cost(cameFrom.get(current, current), current, neighbor, cost)
 
             if neighbor not in openSet:
                 openSet.append(neighbor)
