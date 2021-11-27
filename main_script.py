@@ -2,6 +2,7 @@ import numpy as np
 import cv2 as cv
 from vision.vision_utils import *
 from navigation.nav_global_utils import *
+from obstacle_avoidance.src.obstacle_avoid_short import *
 from tdmclient import ClientAsync
 
 # motors
@@ -61,6 +62,20 @@ def prog():
 
     # Do obstacle avoidance
     # TODO [Sylvain]
+    ## ------------------------------------------
+    ## Full code in         obstacle_avoidance.src.obstacle_avoid_full
+    ## Implemented code in  obstacle_avoidance.src.obstacle_avoid_short
+    ## ------------------------------------------
+
+    # (motor_left, motor_right) = obstacle_avoidance_short(variables)
+
+    #with ClientAsync() as client:
+    #async def prog():
+        #with await client.lock() as node:
+            #await node.watch(variables=True)
+            #node.add_variables_changed_listener(obstacle_avoidance_full)
+           #await client.sleep()
+    #client.run_async_program(prog)
 
     if center is not None:
       # Do trajectory with position
