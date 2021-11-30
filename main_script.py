@@ -46,10 +46,10 @@ if M:
   ## Set parameters
   # resize for faster computation
   h,w = labyrinth_map.shape
-  scale_factor = 50
+  scale_factor = 25
   reduced_w = w // scale_factor
   reduced_h = h // scale_factor
-  labyrinth_map_reduced = cv.resize(labyrinth_map, (reduced_w, reduced_h))
+  labyrinth_map_reduced = cv.resize(labyrinth_map, (reduced_w, reduced_h), interpolation=cv.INTER_AREA)
 
   # set the objectives
   goal = find_exit(labyrinth_map_reduced)

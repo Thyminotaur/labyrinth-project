@@ -15,10 +15,10 @@ h,w = test_scene.shape
 labyrinth_big = vision.detect_labyrinth(test_scene, 100)
 
 # resize for faster computation
-scale_factor = 50
+scale_factor = 25
 desired_w = w//scale_factor
 desired_h = h//scale_factor
-labyrinth = cv.resize(labyrinth_big, (desired_w, desired_h))
+labyrinth = cv.resize(labyrinth_big, (desired_w, desired_h), interpolation=cv.INTER_AREA)
 
 # set the objectives
 goal = navG.find_exit(labyrinth)
