@@ -6,6 +6,7 @@ from vision.vision_utils import *
 from navigation.nav_global_utils import *
 from obstacle_avoidance.src.obstacle_avoid_short import *
 from tdmclient import ClientAsync
+import pdb
 
 # Regulators
 class motors_regulator:
@@ -53,32 +54,64 @@ if M is not None:
   dst = crop_labyrinth(img, M)
   dst_gray = cv.cvtColor(dst, cv.COLOR_BGR2GRAY)
   labyrinth_map = detect_labyrinth(dst_gray, 130)
+  initial_center = None
+  
+  while initial_center is None:  
+    # Localize thymio
+    ret_val, img = cam.read()
+    dst = crop_labyrinth(img, M)
+    dst_gray = cv.cvtColor(dst, cv.COLOR_BGR2GRAY)
+    detected = detect_aruco(dst_gray)
+    (_, initial_center, _) = localize_thymio(dst_gray, detected)
 
-  # Localize thymio
-  detected = detect_aruco(dst_gray)
-  (_, center, _) = localize_thymio(dst_gray, detected)
-
-  if False:
+  if True:
+      center = np.int32(initial_center)
       ### Compute the trajectory TODO David
       ## Set parameters
       # resize for faster computation
+      cv.imwrite("global_trajectory_real.png", labyrinth_map)
       h,w = labyrinth_map.shape
-      scale_factor = 25
+      scale_factor = 20
       reduced_w = w // scale_factor
       reduced_h = h // scale_factor
-      labyrinth_map_reduced = cv.resize(labyrinth_map, (reduced_w, reduced_h), interpolation=cv.INTER_AREA)
+      labyrinth_map_reduced = cv.resize(labyrinth_map, (reduced_w, reduced_h))#, interpolation=cv.INTER_AREA)
+      _, labyrinth_map_reduced = cv.threshold(labyrinth_map_reduced,0,255,cv.THRESH_BINARY+cv.THRESH_OTSU)
+      cv.imwrite("global_trajectory_real_resized.png", labyrinth_map_reduced)
 
       # set the objectives
-      goal = find_exit(labyrinth_map_reduced)
-      start = [(center[0] // scale_factor, center[1] // scale_factor)]
+      goal = find_exit(labyrinth_map)
+      print("Goal normal size:",goal)
+      idx = 0
+      new_goal=[]
+      for row, col in goal:
+        print(idx)
+        #if row//scale_factor < reduced_h and col//scale_factor < reduced_w :
+        new_goal.append((row//scale_factor, col//scale_factor))
+        if idx>0:
+          if new_goal[idx] == new_goal[idx-1]:
+            new_goal.pop(idx)
+          else:
+            idx+=1
+        else:
+          idx+=1
+      print("Goal reduce size:",new_goal)
+      start = [(center[1] // scale_factor, center[0] // scale_factor)]
+      print("Start:",start)
+      labyrinth_map_reduced_color = cv.cvtColor(labyrinth_map_reduced, cv.COLOR_GRAY2BGR)
+      for pos in start:
+        labyrinth_map_reduced_color[pos] = (0,255,0)
+      for pos in new_goal:
+        labyrinth_map_reduced_color[pos] = (0,0,255)
+      cv.imwrite("global_trajectory_real_resized.png", labyrinth_map_reduced_color)
+      #pdb.set_trace()
 
       # set movement type: "4N" or "8N" and cost of motion: [straight,diag,turn]
       movement_type = "8N"
-      cost = [1, np.sqrt(2), 3]
+      cost = [1, np.sqrt(2), 15]
 
       ## find the trajectory
       # A star call to find the exit with least cost motion
-      global_path, closedSet = A_Star(start, goal, labyrinth_map_reduced, cost, movement_type)
+      global_path, closedSet = A_Star(start, new_goal, labyrinth_map_reduced, cost, movement_type)
 
       # Remove unnecessary intermediate position
       global_trajectory = get_linear_trajectory(global_path)
@@ -88,6 +121,7 @@ if M is not None:
 
       # Convert from matrix indexes to cartesian coordinates
       global_trajectory = [(x, y) for y, x in global_trajectory]
+      
 
 async def prog():
 #def prog():
@@ -124,6 +158,9 @@ async def prog():
            #await client.sleep()
     #client.run_async_program(prog)
 
+    # deactivate temporaily motion control
+    center = None
+    
     if center is not None:
         angle = 180.0 * angle / math.pi
 
@@ -175,6 +212,11 @@ async def prog():
       await node.set_variables(motors(0,0))
       pass
 
+    # set the path in red
+    global_path = np.asarray(global_trajectory, np.int32)
+    global_path = global_path.reshape((-1, 1, 2))
+    cv.polylines(dst,[global_path],False,255)
+    
     # cv.imshow('my webcam', img)
     cv.imshow('transformed', dst)
     # cv.imshow('labyrinth', laby)
