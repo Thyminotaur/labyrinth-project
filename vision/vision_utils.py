@@ -156,3 +156,8 @@ def calibrate_corners(cam):
 
     if cv.waitKey(1) == 27: 
       return None
+
+# Do adaptive thresholding for weird images
+def do_adaptive_threshold(img):
+  th = cv.adaptiveThreshold(img,255,cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV,31,2)
+  return th
