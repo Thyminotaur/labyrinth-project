@@ -1,13 +1,56 @@
 import numpy as np
+import cv2 as cv
+
+def resize_data(labyrinth, start, goal, scale_factor=10):
+    h,w = labyrinth.shape
+    desired_w = w // scale_factor
+    desired_h = h // scale_factor
+    labyrinth_reduced = cv.resize(labyrinth, (desired_w, desired_h), interpolation=cv.INTER_AREA)
+    _, labyrinth_reduced = cv.threshold(labyrinth_reduced, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
+    new_start = list(set([(row // scale_factor, col // scale_factor) for row, col in start]))
+    new_goal = list(set([(row // scale_factor, col // scale_factor) for row, col in goal]))
+    return labyrinth_reduced, new_start, new_goal
+
+def check_feasibility(labyrinth, start, goal):
+    feasible = True
+    pos = start[0]
+    h, w = labyrinth.shape
+    if (pos[0] < h) and (pos[1] < w) and (pos[0] > 0) and (pos[1] > 0):
+        if labyrinth[start[0]]:
+            print(f'Start position {start[0]} too close of a border: finding the closest feasible start...')
+            movements = get_movements_8n()
+            idx1 = 0
+            idx2 = 1
+            while labyrinth[pos]:
+                if idx1>=len(movements):
+                    idx2+=1
+                    idx1=0
+                neighbor = (pos[0]+movements[idx1][0]*idx2,pos[1]+movements[idx1][1]*idx2)
+                if (neighbor[0] < h) and (neighbor[1] < w) and (neighbor[0] > 0) and (neighbor[1] > 0):
+                    pos = neighbor
+                idx1+=1
+            start[0] = pos
+            print(f'The new start is {start[0]}')
+    else:
+        print(f'Start position {start[0]} is outside of the labyrinth {h}x{w}')
+        feasible = False
+    if not goal:
+        print("No goal founded")
+        feasible = False
+    else:
+        for pos in goal:
+            if (pos[0] >= h) or (pos[1] >= w) or (pos[0] < 0) or (pos[1] < 0):
+                print(f'Goal position {pos} is outside of the labyrinth {h}x{w}')
+                feasible = False
+    return feasible, start
 
 def create_nodes_ID(grid):
-    height, width = grid.shape
-    nodes_ID = [(row, col) for row in range(height) for col in range(width)]
+    h, w = grid.shape
+    nodes_ID = [(row, col) for row in range(h) for col in range(w)]
     return nodes_ID
 
 def heuristic_cost(goal_ID, nodes_ID, norm_order):
     h = np.linalg.norm(np.asarray(nodes_ID) - np.asarray(goal_ID), ord=norm_order, axis=-1)
-    h = np.multiply(h,1)
     return dict(zip(nodes_ID, h))
 
 def motion_cost(previous, current, next, defined_cost):
@@ -33,8 +76,6 @@ def reconstruct_path(cameFrom, current):
         # Add where the current node came from to the start of the list
         total_path.append(cameFrom[current])
         current=cameFrom[current]
-    # reverse for global cartesian coordinates instead of matrix indexes: col = x, row = y
-    #total_path = [(x, y) for y, x in total_path]
     return total_path
 
 def get_movements_4n():
@@ -147,7 +188,7 @@ def A_Star(start, goal, occupancy_grid, cost, movement_type="4N"):
     print("No path found to goal")
     return [], closedSet
 
-def find_exit(grid):
+def find_goal(grid):
     mask = np.zeros_like(grid, dtype=bool)
     mask[:, 0] = True
     mask[:, -1] = True
@@ -156,9 +197,9 @@ def find_exit(grid):
 
     grid_frame = np.ma.MaskedArray(grid, ~mask)
 
-    exit = np.argwhere(grid_frame == 0)
+    goal = np.argwhere(grid_frame == 0)
 
-    return [tuple(elem) for elem in exit]
+    return [tuple(elem) for elem in goal]
 
 def get_linear_trajectory(path):
     trajectory = []
