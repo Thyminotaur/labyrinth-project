@@ -136,6 +136,7 @@ async def prog():
   while M is not None:
     ret_val, img = cam.read()
     img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    img = do_adaptive_threshold(img)
 
     dst = crop_labyrinth(img, M)
 
