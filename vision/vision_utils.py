@@ -106,7 +106,7 @@ def detect_labyrinth(img, wall_size):
   result = th
 
   # Dilate walls
-  kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE,(wall_size,wall_size))
+  kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE,wall_size)
   result = cv.dilate(result,kernel,iterations = 1)
 
   return result
