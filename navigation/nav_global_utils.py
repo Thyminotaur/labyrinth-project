@@ -1,5 +1,15 @@
 import numpy as np
 
+def create_nodes_ID(grid):
+    height, width = grid.shape
+    nodes_ID = [(row, col) for row in range(height) for col in range(width)]
+    return nodes_ID
+
+def heuristic_cost(goal_ID, nodes_ID, norm_order):
+    h = np.linalg.norm(np.asarray(nodes_ID) - np.asarray(goal_ID), ord=norm_order, axis=-1)
+    h = np.multiply(h,1)
+    return dict(zip(nodes_ID, h))
+
 def motion_cost(previous, current, next, defined_cost):
     straight_cost = defined_cost[0]
     diag_cost = defined_cost[1]
@@ -12,28 +22,10 @@ def motion_cost(previous, current, next, defined_cost):
         cost = diag_cost
     else:
         cost = straight_cost
-
-    if not(np.array_equal(prev_motion, current_motion)) and not( np.array_equal(prev_motion, [0,0])): # turning
+    # add cost for turning
+    if not(np.array_equal(prev_motion, current_motion)) and not( np.array_equal(prev_motion, [0,0])):
         cost = cost + turn_cost
-
     return cost
-
-def heuristic_cost(goal_ID, nodes_ID, norm_order):
-    h = np.linalg.norm(np.asarray(nodes_ID) - np.asarray(goal_ID), ord=norm_order, axis=-1)
-    return dict(zip(nodes_ID, h))
-
-def find_exit(grid):
-    mask = np.zeros_like(grid, dtype=bool)
-    mask[:, 0] = True
-    mask[:, -1] = True
-    mask[0, :] = True
-    mask[-1, :] = True
-
-    grid_frame = np.ma.MaskedArray(grid, ~mask)
-
-    exit = np.argwhere(grid_frame == 0)
-
-    return [tuple(elem) for elem in exit]
 
 def reconstruct_path(cameFrom, current):
     total_path = [current]
@@ -41,21 +33,9 @@ def reconstruct_path(cameFrom, current):
         # Add where the current node came from to the start of the list
         total_path.append(cameFrom[current])
         current=cameFrom[current]
-    # reverse for global coords instead of matrix index: col = x, row = y
-    total_path = [(x, y) for y, x in total_path]
-    print("Length path = ", len(total_path))
+    # reverse for global cartesian coordinates instead of matrix indexes: col = x, row = y
+    #total_path = [(x, y) for y, x in total_path]
     return total_path
-
-def create_nodes_ID(grid):
-    height, width = grid.shape
-    nodes_ID = [(row, col) for row in range(height) for col in range(width)]
-    # x, y = np.mgrid[0:height:1, 0:width:1] # reverse order as indexing matrix is different than x,y coords
-    # pos = np.empty(x.shape + (2,))
-    # pos[:, :, 0] = x
-    # pos[:, :, 1] = y
-    # pos = np.reshape(pos, (x.shape[0] * x.shape[1], 2))
-    # nodes_ID = list([(int(x[0]), int(x[1])) for x in pos])
-    return nodes_ID
 
 def get_movements_4n():
     """
@@ -131,8 +111,7 @@ def A_Star(start, goal, occupancy_grid, cost, movement_type="4N"):
 
         # If the goal is reached, reconstruct and return the obtained path
         if current in goal:
-            print("Length ClosedSet = ", len(closedSet))
-            return reconstruct_path(cameFrom, current), closedSet, h
+            return reconstruct_path(cameFrom, current), closedSet
 
         openSet.remove(current)
         closedSet.append(current)
@@ -167,3 +146,38 @@ def A_Star(start, goal, occupancy_grid, cost, movement_type="4N"):
     # Open set is empty but goal was never reached
     print("No path found to goal")
     return [], closedSet
+
+def find_exit(grid):
+    mask = np.zeros_like(grid, dtype=bool)
+    mask[:, 0] = True
+    mask[:, -1] = True
+    mask[0, :] = True
+    mask[-1, :] = True
+
+    grid_frame = np.ma.MaskedArray(grid, ~mask)
+
+    exit = np.argwhere(grid_frame == 0)
+
+    return [tuple(elem) for elem in exit]
+
+def get_linear_trajectory(path):
+    trajectory = []
+    last_pos = path[0]
+    last_motion = [0, 0]
+    for next_pos in path[1:]:
+        next_motion = np.asarray(next_pos) - np.asarray(last_pos)
+        if not (np.array_equal(last_motion, next_motion)):
+            trajectory.append(last_pos)
+            last_motion = next_motion
+        last_pos = next_pos
+    trajectory.append(path[-1])
+    return trajectory
+
+def scale_up_trajectory(path, scale_factor):
+    idx = 0
+    for row, col in path:
+        row = row * scale_factor + (scale_factor // 2)
+        col = col * scale_factor + (scale_factor // 2)
+        path[idx] = (row, col)
+        idx +=1
+    return path
