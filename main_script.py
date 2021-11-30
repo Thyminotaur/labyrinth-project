@@ -125,6 +125,7 @@ async def prog():
   while M is not None:
     ret_val, img = cam.read()
     img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    img = do_adaptive_threshold(img)
 
     dst = crop_labyrinth(img, M)
 
@@ -191,23 +192,36 @@ async def prog():
       alpha_c = -180*math.atan2(point_to_go[1] - thymio_position.y, point_to_go[0] - thymio_position.x)/math.pi
       alpha_e =  thymio_position.alpha - alpha_c            
 
-      print("\nx : " + str(center[0]))
-      print("y : " + str(center[1]))
+      #print("\nx : " + str(center[0]))
+      #print("y : " + str(center[1]))
       print("\nconsigne : " + str(alpha_c))
       print("robot : " + str(thymio_position.alpha))
       print("erreur : " + str(alpha_e))
-      print("Distance : " + str(distance))
+      #print("Distance : " + str(distance))
 
       if is_finished:
         motor_L = 0
         motor_R = 0
 
-      else:
+      elif (alpha_e < 180 and alpha_e > -180) :
         motor_L = PID.Kd * (180-abs(alpha_e)) + PID.Kp * alpha_e
-        motor_R = PID.Kd * (180-abs(alpha_e)) -PID.Kp * alpha_e
+        motor_R = PID.Kd * (180-abs(alpha_e)) - PID.Kp * alpha_e
+
+      elif alpha_e < -180 :
+        alpha_e = 360 + alpha_e
+        motor_L = PID.Kd * (180-abs(alpha_e)) + PID.Kp * alpha_e
+        motor_R = PID.Kd * (180-abs(alpha_e)) - PID.Kp * alpha_e
+
+      elif alpha_e > 180 :
+        alpha_e = -360 + alpha_e
+        motor_L = PID.Kd * (180-abs(alpha_e)) + PID.Kp * alpha_e
+        motor_R = PID.Kd * (180-abs(alpha_e)) - PID.Kp * alpha_e
+
+      print("\nmotor_L : " + str(motor_L))
+      print("motor_R : " + str(motor_R))
      
       await node.set_variables(motors(int(motor_L), int(motor_R)))
-
+      #await node.set_variables(motors(0, 0))
       pass
     else:
       # Do trajectory without position information
