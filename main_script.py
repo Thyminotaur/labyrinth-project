@@ -11,7 +11,7 @@ import pdb
 # Regulators
 class motors_regulator:
     Kp = 4
-    Kd = 1
+    Kd = 0.5
     Ki = 1
 
 class robot_position:
@@ -53,7 +53,7 @@ if M is not None:
   ret_val, img = cam.read()
   dst = crop_labyrinth(img, M)
   dst_gray = cv.cvtColor(dst, cv.COLOR_BGR2GRAY)
-  labyrinth_map = detect_labyrinth(dst_gray, 130)
+  labyrinth_map = detect_labyrinth(dst_gray, (200,130))
   initial_center = None
   
   while initial_center is None:  
@@ -71,10 +71,10 @@ if M is not None:
       # resize for faster computation
       cv.imwrite("global_trajectory_real.png", labyrinth_map)
       h,w = labyrinth_map.shape
-      scale_factor = 20
+      scale_factor = 10
       reduced_w = w // scale_factor
       reduced_h = h // scale_factor
-      labyrinth_map_reduced = cv.resize(labyrinth_map, (reduced_w, reduced_h))#, interpolation=cv.INTER_AREA)
+      labyrinth_map_reduced = cv.resize(labyrinth_map, (reduced_w, reduced_h), interpolation=cv.INTER_AREA)
       _, labyrinth_map_reduced = cv.threshold(labyrinth_map_reduced,0,255,cv.THRESH_BINARY+cv.THRESH_OTSU)
       cv.imwrite("global_trajectory_real_resized.png", labyrinth_map_reduced)
 
@@ -106,7 +106,7 @@ if M is not None:
       #pdb.set_trace()
 
       # set movement type: "4N" or "8N" and cost of motion: [straight,diag,turn]
-      movement_type = "8N"
+      movement_type = "4N"
       cost = [1, np.sqrt(2), 15]
 
       ## find the trajectory
@@ -129,7 +129,9 @@ async def prog():
   await node.lock()
 
   distance = 0
-  point_to_go = [700, 300]
+  point_to_go = [0, 0]
+  actual_point = 0
+  is_finished = False
 
   while M is not None:
     ret_val, img = cam.read()
@@ -141,6 +143,7 @@ async def prog():
     detected = detect_aruco(dst)
     (_, center, angle) = localize_thymio(dst, detected)
 
+    
     # Do obstacle avoidance
     # TODO [Sylvain]
     ## ------------------------------------------
@@ -159,53 +162,77 @@ async def prog():
     #client.run_async_program(prog)
 
     # deactivate temporaily motion control
-    center = None
-    
-    if center is not None:
-        angle = 180.0 * angle / math.pi
+    #center = None
+           
 
     if center is not None:
       # Do trajectory with position
       # TODO [Stephen]
-    
+
+      # At the beginning set point to go to the first point of the list
+      if actual_point == 0:
+        point_to_go = list(global_trajectory[0])
+        actual_point = 1
+
+      # Point to go = Position of the robot if we reach the end of the list
+      elif actual_point >= len(global_trajectory) and distance < 5:
+        is_finished = True
+
+      # If the robot is close to the point to go -> Next point
+      elif distance < 5:
+        point_to_go = list(global_trajectory[actual_point])
+        actual_point += 1
+
+
+      # Position and orientation of the thymio
+      thymio_position.alpha = 180.0 * angle / math.pi
+      thymio_position.x = center[0]
+      thymio_position.y = center[1]
+
+
+      distance = math.sqrt(pow(thymio_position.x - point_to_go[0], 2) + pow(thymio_position.y - point_to_go[1], 2))
+
+      #if(distance < 20):
+      #  point_to_go[0] = rand.randint(100, 600)
+      #  point_to_go[1] = rand.randint(100, 400)
         
-        thymio_position.x = center[0]
-        thymio_position.y = center[1]
+      cv.circle(dst, (int(thymio_position.x), int(thymio_position.y)), 5, (255,255,255))
+      cv.line(dst, (int(thymio_position.x), int(thymio_position.y)), (point_to_go[0], point_to_go[1]), (255,255,255), 5)
 
-        cv.circle(dst, (int(thymio_position.x), int(thymio_position.y)), 50, (255,255,255))
-        cv.line(dst, (int(thymio_position.x), int(thymio_position.y)), (point_to_go[0], point_to_go[1]), (255,255,255), 5)
-        
-        thymio_position.alpha = angle
+      alpha_c = -180*math.atan2(point_to_go[1] - thymio_position.y, point_to_go[0] - thymio_position.x)/math.pi
+      alpha_e =  thymio_position.alpha - alpha_c            
 
-        alpha_c = -180*math.atan2(point_to_go[1] - thymio_position.y, point_to_go[0] - thymio_position.x)/math.pi
+      #print("\nx : " + str(center[0]))
+      #print("y : " + str(center[1]))
+      print("\nconsigne : " + str(alpha_c))
+      print("robot : " + str(thymio_position.alpha))
+      print("erreur : " + str(alpha_e))
+      #print("Distance : " + str(distance))
 
+      if is_finished:
+        motor_L = 0
+        motor_R = 0
 
-        alpha_e =  thymio_position.alpha - alpha_c            
+      elif (alpha_e < 180 and alpha_e > -180) :
+        motor_L = PID.Kd * (180-abs(alpha_e)) + PID.Kp * alpha_e
+        motor_R = PID.Kd * (180-abs(alpha_e)) - PID.Kp * alpha_e
 
-        print("\nx : " + str(center[0]))
-        print("y : " + str(center[1]))
-        
-        print("\nconsigne : " + str(alpha_c))
-        print("robot : " + str(thymio_position.alpha))
-        print("erreur : " + str(alpha_e))
+      elif alpha_e < -180 :
+        alpha_e = 360 + alpha_e
+        motor_L = PID.Kd * (180-abs(alpha_e)) + PID.Kp * alpha_e
+        motor_R = PID.Kd * (180-abs(alpha_e)) - PID.Kp * alpha_e
 
-        if(distance < 50):
-            point_to_go[0] = rand.randint(100, 600)
-            point_to_go[1] = rand.randint(100, 400)
+      elif alpha_e > 180 :
+        alpha_e = -360 + alpha_e
+        motor_L = PID.Kd * (180-abs(alpha_e)) + PID.Kp * alpha_e
+        motor_R = PID.Kd * (180-abs(alpha_e)) - PID.Kp * alpha_e
 
-        distance = math.sqrt(pow(thymio_position.x - point_to_go[0], 2) + pow(thymio_position.y - point_to_go[1], 2))
-
-        print("Distance : " + str(distance))
-        
-        motor_L = PID.Kd * distance + PID.Kp * alpha_e
-        motor_R = PID.Kd * distance -PID.Kp * alpha_e
-        #print("R : " + str(motor_R))
-        #print("L : " + str(motor_L))
-
-        
-        await node.set_variables(motors(int(motor_L), int(motor_R)))
-        #await node.set_variables(motors(0, 0))
-        pass
+      print("\nmotor_L : " + str(motor_L))
+      print("motor_R : " + str(motor_R))
+     
+      await node.set_variables(motors(int(motor_L), int(motor_R)))
+      #await node.set_variables(motors(0, 0))
+      pass
     else:
       # Do trajectory without position information
       # TODO [Stephen]
