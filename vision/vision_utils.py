@@ -9,7 +9,7 @@ arucoParams = cv.aruco.DetectorParameters_create()
 
 ## A0 paper ratio
 res_w = 720
-res_h = 1280
+res_h = 1020
 
 # Corners dictionary
 corner_ids = {
