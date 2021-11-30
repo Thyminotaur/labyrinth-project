@@ -42,8 +42,35 @@ if M:
   detected = detect_aruco(dst_gray)
   (_, center, _) = localize_thymio(dst_gray, detected)
 
-  # Compute the trajectory 
-  # TODO [David]
+  ### Compute the trajectory TODO David
+  ## Set parameters
+  # resize for faster computation
+  h,w = labyrinth_map.shape
+  scale_factor = 50
+  reduced_w = w // scale_factor
+  reduced_h = h // scale_factor
+  labyrinth_map_reduced = cv.resize(labyrinth_map, (reduced_w, reduced_h))
+
+  # set the objectives
+  goal = find_exit(labyrinth_map_reduced)
+  start = [(center[0] // scale_factor, center[1] // scale_factor)]
+
+  # set movement type: "4N" or "8N" and cost of motion: [straight,diag,turn]
+  movement_type = "8N"
+  cost = [1, np.sqrt(2), 3]
+
+  ## find the trajectory
+  # A star call to find the exit with least cost motion
+  global_path, closedSet = A_Star(start, goal, labyrinth_map_reduced, cost, movement_type)
+
+  # Remove unnecessary intermediate position
+  global_trajectory = get_linear_trajectory(global_path)
+
+  # Resize to original size
+  global_trajectory = scale_up_trajectory(global_trajectory, scale_factor)
+
+  # Convert from matrix indexes to cartesian coordinates
+  global_trajectory = [(x, y) for y, x in global_trajectory]
 
 # async def prog():
 def prog():
