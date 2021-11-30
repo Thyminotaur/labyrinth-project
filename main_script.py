@@ -5,6 +5,20 @@ from navigation.nav_global_utils import *
 from obstacle_avoidance.src.obstacle_avoid_short import *
 from tdmclient import ClientAsync
 
+# Regulators
+class motors_regulator:
+    Kp = 4
+    Kd = 1
+    Ki = 1
+
+class robot_position:
+    x = 0.0
+    y = 0.0
+    alpha = 0.0
+
+PID = motors_regulator()
+thymio_position = robot_position()
+
 # motors
 def motors(left, right):
     return {
@@ -12,8 +26,8 @@ def motors(left, right):
         "motor.right.target": [right],
     }
 
-# init tdm client
-# client = ClientAsync()
+init tdm client
+client = ClientAsync()
 
 # Open Camera
 cam = cv.VideoCapture(0, cv.CAP_DSHOW)
@@ -31,7 +45,7 @@ while True:
   if M is None:
     break
 
-if M:
+if M is not None:
   # Get the labyrinth map
   ret_val, img = cam.read()
   dst = crop_labyrinth(img, M)
@@ -74,10 +88,13 @@ if M:
 
 # async def prog():
 def prog():
-  # node = await client.wait_for_node()
-  # await node.lock()
+  node = await client.wait_for_node()
+  await node.lock()
 
-  while M:
+  distance = 0
+  point_to_go = [700, 300]
+
+  while M is not None:
     ret_val, img = cam.read()
     img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
@@ -105,12 +122,54 @@ def prog():
     #client.run_async_program(prog)
 
     if center is not None:
+        angle = 180.0 * angle / math.pi
+
+    if center is not None:
       # Do trajectory with position
       # TODO [Stephen]
-      pass
+    
+        
+        thymio_position.x = center[0]
+        thymio_position.y = center[1]
+
+        cv.circle(dst, (int(thymio_position.x), int(thymio_position.y)), 50, (255,255,255))
+        cv.line(dst, (int(thymio_position.x), int(thymio_position.y)), (point_to_go[0], point_to_go[1]), (255,255,255), 5)
+        
+        thymio_position.alpha = angle
+
+        alpha_c = -180*math.atan2(point_to_go[1] - thymio_position.y, point_to_go[0] - thymio_position.x)/math.pi
+
+
+        alpha_e =  thymio_position.alpha - alpha_c            
+
+        print("\nx : " + str(center[0]))
+        print("y : " + str(center[1]))
+        
+        print("\nconsigne : " + str(alpha_c))
+        print("robot : " + str(thymio_position.alpha))
+        print("erreur : " + str(alpha_e))
+
+        if(distance < 50):
+            point_to_go[0] = rand.randint(100, 600)
+            point_to_go[1] = rand.randint(100, 400)
+
+        distance = math.sqrt(pow(thymio_position.x - point_to_go[0], 2) + pow(thymio_position.y - point_to_go[1], 2))
+
+        print("Distance : " + str(distance))
+        
+        motor_L = PID.Kd * distance + PID.Kp * alpha_e
+        motor_R = PID.Kd * distance -PID.Kp * alpha_e
+        #print("R : " + str(motor_R))
+        #print("L : " + str(motor_L))
+
+        
+        await node.set_variables(motors(int(motor_L), int(motor_R)))
+        #await node.set_variables(motors(0, 0))
+        pass
     else:
       # Do trajectory without position information
       # TODO [Stephen]
+      await node.set_variables(motors(0,0))
       pass
 
     # cv.imshow('my webcam', img)
@@ -124,5 +183,5 @@ def prog():
   # await node.unlock()
   cv.destroyAllWindows()
 
-# client.run_async_program(prog)
+client.run_async_program(prog)
 prog()
