@@ -136,6 +136,9 @@ def calibrate_corners(cam):
   while True:
     ret_val, img = cam.read()
 
+    if img is None:
+      continue
+
     M = get_labyrinth_perspective(img)
     if M is not None:
       return M
