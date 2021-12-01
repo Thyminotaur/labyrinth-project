@@ -216,12 +216,12 @@ def estimate_aruco_axis(img, detected, aruco_id, cam_int, marker_length=6e-3):
 
   (c, corners) = get_pos_aruco(detected, aruco_id)
 
-  if c is None:
+  if c is not None:
     local_rvecs, local_tvecs, _ = cv.aruco.estimatePoseSingleMarkers([corners], marker_length, mtx, dist)
 
     cv.aruco.drawAxis(img, mtx, dist, local_rvecs, local_tvecs, 0.01)
     return local_rvecs[0], local_tvecs[0]
-  else
+  else:
     return None, None
 
 def write_predefined_camera_int(path, cam_int):
