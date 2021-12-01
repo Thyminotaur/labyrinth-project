@@ -203,3 +203,21 @@ def find_camera_intrinsics(folder_path, square_width, cx=9, cy=6):
   print(f'dist {dist}')
   cv.destroyAllWindows()
 
+  cam_int = (mtx, dist, rvecs, tvecs)
+
+  return  cam_int
+
+def estimate_aruco_axis(img, detected, aruco_id, cam_int, marker_length=6e-3):
+  (mtx, dist, rvecs, tvecs) = cam_int
+
+  (c, corners) = get_pos_aruco(detected, aruco_id)
+
+  local_rvecs, local_tvecs, _ = cv.aruco.estimatePoseSingleMarkers(corners, marker_length, mtx, dist, rvecs, tvecs)
+  axis = np.float32([[3,0,0], [0,3,0], [0,0,-3]]).reshape(-1,3)
+
+  imgpts, jac = cv.projectPoints(axis, local_rvecs, local_tvecs, mtx, dist)
+
+  corner = tuple(corners[0].ravel())
+  cv.line(img, corner, tuple(imgpts[0].ravel()), (255,0,0), 5)
+  cv.line(img, corner, tuple(imgpts[1].ravel()), (0,255,0), 5)
+  cv.line(img, corner, tuple(imgpts[2].ravel()), (0,0,255), 5)
