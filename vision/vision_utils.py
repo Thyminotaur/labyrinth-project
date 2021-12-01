@@ -220,7 +220,7 @@ def estimate_aruco_axis(img, detected, aruco_id, cam_int, marker_length=6e-3):
   local_rvecs, local_tvecs, _ = cv.aruco.estimatePoseSingleMarkers([corners], marker_length, mtx, dist)
 
   cv.aruco.drawAxis(img, mtx, dist, local_rvecs, local_tvecs, 0.01)
-  return local_rvecs, local_tvecs
+  return local_rvecs[0], local_tvecs[0]
 
 def write_predefined_camera_int(path, cam_int):
   f = open(path, "wb")
@@ -231,7 +231,7 @@ def load_predefined_camera_int(path):
   return pickle.load(f)
 
 def compute_offset_elevation(cam_int, rvecs, tvecs, elevation):
-  (mtx, dist, rvecs, tvecs) = cam_int
+  (mtx, dist, _, _) = cam_int
 
-  imgpts, _ = cv.projectPoints([[0, 0, elevation]], rvecs, tvecs, mtx, dist)
-  print(imgpts)
+  imgpts, _ = cv.projectPoints(np.float32([[0, 0, -4e-3]]), rvecs, tvecs, mtx, dist)
+  return np.float32(imgpts[0][0])
