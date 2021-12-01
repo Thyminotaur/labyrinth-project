@@ -8,6 +8,8 @@ class motors_regulator:
 class robot_position:
     actual_pos = [0, 0]
     alpha = 0.0
+    x = 0.0
+    y = 0.0
 
 def motors(left, right):
     return {
@@ -27,19 +29,20 @@ def compute_motor_speed(angle_error, regulator, is_finished):
   if is_finished:
     motor_L = 0
     motor_R = 0
+    return motor_L, motor_R
 
-  elif alpha_e < -180 :
-    alpha_e = 360 + alpha_e
+  elif angle_error < -180 :
+    angle_error = 360 + angle_error
 
-  elif alpha_e > 180 :
-    alpha_e = -360 + alpha_e
+  elif angle_error > 180 :
+    angle_error = -360 + angle_error
 
-  motor_L = regulator.Kp_dist * (180-abs(alpha_e)) + regulator.Kp_angle * alpha_e
-  motor_R = regulator.Kp_dist * (180-abs(alpha_e)) - regulator.Kp_angle * alpha_e
+  motor_L = regulator.Kp_dist * (180-abs(angle_error)) + regulator.Kp_angle * angle_error
+  motor_R = regulator.Kp_dist * (180-abs(angle_error)) - regulator.Kp_angle * angle_error
 
   return motor_L, motor_R
 
-def set_point_to_go(actual_point, global_trajectory, distance, is_finished):
+def set_point_to_go(actual_point, point_to_go, global_trajectory, distance, is_finished):
   if actual_point == 0:
     point_to_go = list(global_trajectory[0])
     actual_point = 1
@@ -53,6 +56,6 @@ def set_point_to_go(actual_point, global_trajectory, distance, is_finished):
     point_to_go = list(global_trajectory[actual_point])
     actual_point += 1
 
-  return actual_point
+  return actual_point, point_to_go, is_finished
 
 
