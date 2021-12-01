@@ -216,11 +216,13 @@ def estimate_aruco_axis(img, detected, aruco_id, cam_int, marker_length=6e-3):
 
   (c, corners) = get_pos_aruco(detected, aruco_id)
 
+  if c is None:
+    local_rvecs, local_tvecs, _ = cv.aruco.estimatePoseSingleMarkers([corners], marker_length, mtx, dist)
 
-  local_rvecs, local_tvecs, _ = cv.aruco.estimatePoseSingleMarkers([corners], marker_length, mtx, dist)
-
-  cv.aruco.drawAxis(img, mtx, dist, local_rvecs, local_tvecs, 0.01)
-  return local_rvecs[0], local_tvecs[0]
+    cv.aruco.drawAxis(img, mtx, dist, local_rvecs, local_tvecs, 0.01)
+    return local_rvecs[0], local_tvecs[0]
+  else
+    return None, None
 
 def write_predefined_camera_int(path, cam_int):
   f = open(path, "wb")
@@ -233,5 +235,8 @@ def load_predefined_camera_int(path):
 def compute_offset_elevation(cam_int, rvecs, tvecs, elevation):
   (mtx, dist, _, _) = cam_int
 
-  imgpts, _ = cv.projectPoints(np.float32([[0, 0, -4e-3]]), rvecs, tvecs, mtx, dist)
-  return np.float32(imgpts[0][0])
+  if rvecs is not None:
+    imgpts, _ = cv.projectPoints(np.float32([[0, 0, -4e-3]]), rvecs, tvecs, mtx, dist)
+    return np.float32(imgpts[0][0])
+  else:
+    return None
