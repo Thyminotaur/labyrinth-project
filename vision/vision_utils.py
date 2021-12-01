@@ -221,7 +221,7 @@ def estimate_aruco_axis(img, detected, aruco_id, cam_int, marker_length=6e-3):
 
     cv.aruco.drawAxis(img, mtx, dist, local_rvecs, local_tvecs, 0.01)
     return local_rvecs[0], local_tvecs[0]
-  else
+  else:
     return None, None
 
 def write_predefined_camera_int(path, cam_int):
