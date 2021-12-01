@@ -10,18 +10,21 @@ import pdb
 from motion.motion_utils import *
 
 # Regulators
-class motors_regulator:
-    Kp = 4
-    Kd = 0.5
-    Ki = 1
+#class motors_regulator:
+#    Kp = 4
+#    Kd = 0.5
+#    Ki = 1
 
-class robot_position:
-    x = 0.0
-    y = 0.0
-    alpha = 0.0
+#class robot_position:
+#    x = 0.0
+#    y = 0.0
+#    position = [0, 0]
+#    alpha = 0.0
 
-PID = motors_regulator()
-thymio_position = robot_position()
+#PID = motors_regulator()
+    
+regulator = motors_regulator()
+thymio = robot_position()
 
 # motors
 def motors(left, right):
@@ -54,7 +57,7 @@ if M is not None:
   ret_val, img = cam.read()
   dst = crop_labyrinth(img, M)
   dst_gray = cv.cvtColor(dst, cv.COLOR_BGR2GRAY)
-  labyrinth_map = detect_labyrinth(dst_gray, (140,120))
+  labyrinth_map = detect_labyrinth(dst_gray, (130,110))
   initial_center = None
   
   while initial_center is None:  
@@ -114,7 +117,6 @@ if M is not None:
       #pdb.set_trace()
 
 async def prog():
-#def prog():
   node = await client.wait_for_node()
   await node.lock()
 
@@ -126,13 +128,14 @@ async def prog():
   while M is not None:
     ret_val, img = cam.read()
     img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-    img = do_adaptive_threshold(img)
+    #img = do_adaptive_threshold(img)
 
     dst = crop_labyrinth(img, M)
+    dst_th = do_adaptive_threshold(dst)
 
     # Localize thymio
-    detected = detect_aruco(dst)
-    (_, center, angle) = localize_thymio(dst, detected)
+    detected = detect_aruco(dst_th)
+    (_, center, angle) = localize_thymio(dst_th, detected)
 
     
     # Do obstacle avoidance
@@ -156,70 +159,46 @@ async def prog():
     #center = None
            
 
-    if center is not None:
-      # Do trajectory with position
-      # TODO [Stephen]
-
-      # At the beginning set point to go to the first point of the list
-      if actual_point == 0:
-        point_to_go = list(global_trajectory[0])
-        actual_point = 1
-
-      # Point to go = Position of the robot if we reach the end of the list
-      elif actual_point >= len(global_trajectory) and distance < 5:
-        is_finished = True
-
-      # If the robot is close to the point to go -> Next point
-      elif distance < 5:
-        point_to_go = list(global_trajectory[actual_point])
-        actual_point += 1
-
+    if ((center is not None) and (global_trajectory is not None)):
+      actual_point, point_to_go, is_finished = set_point_to_go(actual_point, point_to_go, global_trajectory, distance, is_finished)
 
       # Position and orientation of the thymio
-      thymio_position.alpha = 180.0 * angle / math.pi
-      thymio_position.x = center[0]
-      thymio_position.y = center[1]
+      thymio.alpha = 180.0 * angle / math.pi
+      thymio.position = center
+      thymio.x = center[0]
+      thymio.y = center[1]
 
+      distance = compute_distance(thymio.position, point_to_go)
 
-      distance = math.sqrt(pow(thymio_position.x - point_to_go[0], 2) + pow(thymio_position.y - point_to_go[1], 2))
+      cv.circle(dst, (int(thymio.x), int(thymio.y)), 5, (255,255,255))
+      cv.line(dst, (int(thymio.x), int(thymio.y)), (point_to_go[0], point_to_go[1]), (255,255,255), 5)
 
-      #distance = 
+      alpha_c = compute_angle(thymio.position, point_to_go)
+      alpha_e =  thymio.alpha - alpha_c            
 
-      #if(distance < 20):
-      #  point_to_go[0] = rand.randint(100, 600)
-      #  point_to_go[1] = rand.randint(100, 400)
-        
-      cv.circle(dst, (int(thymio_position.x), int(thymio_position.y)), 5, (255,255,255))
-      cv.line(dst, (int(thymio_position.x), int(thymio_position.y)), (point_to_go[0], point_to_go[1]), (255,255,255), 5)
+      motor_L, motor_R = compute_motor_speed(alpha_e, regulator, is_finished)
 
-      alpha_c = -180*math.atan2(point_to_go[1] - thymio_position.y, point_to_go[0] - thymio_position.x)/math.pi
-      alpha_e =  thymio_position.alpha - alpha_c            
+      #if is_finished:
+      #  motor_L = 0
+      #  motor_R = 0
 
-      #print("\nx : " + str(center[0]))
-      #print("y : " + str(center[1]))
+      #elif (alpha_e < 180 and alpha_e > -180) :
+      #  motor_L = PID.Kd * (180-abs(alpha_e)) + PID.Kp * alpha_e
+      #  motor_R = PID.Kd * (180-abs(alpha_e)) - PID.Kp * alpha_e
+
+      #elif alpha_e < -180 :
+      #  alpha_e = 360 + alpha_e
+      #  motor_L = PID.Kd * (180-abs(alpha_e)) + PID.Kp * alpha_e
+      #  motor_R = PID.Kd * (180-abs(alpha_e)) - PID.Kp * alpha_e
+
+      #elif alpha_e > 180 :
+      #  alpha_e = -360 + alpha_e
+      #  motor_L = PID.Kd * (180-abs(alpha_e)) + PID.Kp * alpha_e
+      #  motor_R = PID.Kd * (180-abs(alpha_e)) - PID.Kp * alpha_e
+
       print("\nconsigne : " + str(alpha_c))
-      print("robot : " + str(thymio_position.alpha))
+      print("robot : " + str(thymio.alpha))
       print("erreur : " + str(alpha_e))
-      #print("Distance : " + str(distance))
-
-      if is_finished:
-        motor_L = 0
-        motor_R = 0
-
-      elif (alpha_e < 180 and alpha_e > -180) :
-        motor_L = PID.Kd * (180-abs(alpha_e)) + PID.Kp * alpha_e
-        motor_R = PID.Kd * (180-abs(alpha_e)) - PID.Kp * alpha_e
-
-      elif alpha_e < -180 :
-        alpha_e = 360 + alpha_e
-        motor_L = PID.Kd * (180-abs(alpha_e)) + PID.Kp * alpha_e
-        motor_R = PID.Kd * (180-abs(alpha_e)) - PID.Kp * alpha_e
-
-      elif alpha_e > 180 :
-        alpha_e = -360 + alpha_e
-        motor_L = PID.Kd * (180-abs(alpha_e)) + PID.Kp * alpha_e
-        motor_R = PID.Kd * (180-abs(alpha_e)) - PID.Kp * alpha_e
-
       print("\nmotor_L : " + str(motor_L))
       print("motor_R : " + str(motor_R))
      
