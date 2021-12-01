@@ -53,7 +53,7 @@ if M is not None:
   ret_val, img = cam.read()
   dst = crop_labyrinth(img, M)
   dst_gray = cv.cvtColor(dst, cv.COLOR_BGR2GRAY)
-  labyrinth_map = detect_labyrinth(dst_gray, (150,140))
+  labyrinth_map = detect_labyrinth(dst_gray, (140,120))
   initial_center = None
   
   while initial_center is None:  
