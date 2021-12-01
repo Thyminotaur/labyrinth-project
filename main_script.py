@@ -57,7 +57,7 @@ if M is not None:
   ret_val, img = cam.read()
   dst = crop_labyrinth(img, M)
   dst_gray = cv.cvtColor(dst, cv.COLOR_BGR2GRAY)
-  labyrinth_map = detect_labyrinth(dst_gray, (100,80))
+  labyrinth_map = detect_labyrinth(dst_gray, (120,100))
   initial_center = None
   
   while initial_center is None:  
@@ -134,19 +134,22 @@ async def prog():
 
     dst = crop_labyrinth(img, M)
     dst_th = do_adaptive_threshold(dst)
-
+    dst = cv.cvtColor(dst, cv.COLOR_GRAY2BGR)
     # Localize thymio
     detected = detect_aruco(dst_th)
     (_, center, angle) = localize_thymio(dst_th, detected)
 
-    if center is None:
+    if center is not None:
+      detected = detect_aruco(dst)
+      (center, c) = get_pos_aruco(detected, 2)
       rvecs, tvecs = estimate_aruco_axis(dst, detected, 2, cam_int, marker_length=13e-3)
+
       imgpts = compute_offset_elevation(cam_int, rvecs, tvecs, 0.1)
 
-      cv.drawMarker(dst, np.int32(imgpts), (0, 0, 255), markerSize=40, thickness=4)
-     
-        # correction axis
-        # center = imgpts
+      if imgpts is not None:
+        cv.drawMarker(dst, np.int32(imgpts), (0, 0, 255), markerSize=40, thickness=4)
+        center = imgpts
+
     
     # Do obstacle avoidance
     # TODO [Sylvain]
@@ -169,7 +172,7 @@ async def prog():
     #center = None
            
 
-    if ((center is not None) and (global_trajectory is not None)):
+    if (center is not None):
       actual_point, point_to_go, is_finished = set_point_to_go(actual_point, point_to_go, global_trajectory, distance, is_finished)
 
       # Position and orientation of the thymio
@@ -199,7 +202,7 @@ async def prog():
     # set the path in red
     global_path = np.asarray(global_trajectory, np.int32)
     global_path = global_path.reshape((-1, 1, 2))
-    cv.polylines(dst,[global_path],False,255)
+    cv.polylines(dst,[global_path],False,(255, 255, 0))
     
     # cv.imshow('my webcam', img)
     cv.imshow('transformed', dst)
