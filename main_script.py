@@ -140,11 +140,11 @@ async def prog():
     (_, center, angle) = localize_thymio(dst_th, detected)
 
     if center is None:
-        rvecs, tvecs = estimate_aruco_axis(dst, detected, 2, cam_int, marker_length=13e-3)
-        imgpts = compute_offset_elevation(cam_int, rvecs, tvecs, 0.1)
+      rvecs, tvecs = estimate_aruco_axis(dst, detected, 2, cam_int, marker_length=13e-3)
+      imgpts = compute_offset_elevation(cam_int, rvecs, tvecs, 0.1)
 
-        cv.drawMarker(dst, np.int32(imgpts), (0, 0, 255), markerSize=40, thickness=4)
-    
+      cv.drawMarker(dst, np.int32(imgpts), (0, 0, 255), markerSize=40, thickness=4)
+     
         # correction axis
         # center = imgpts
     
@@ -187,33 +187,8 @@ async def prog():
       alpha_e =  thymio.alpha - alpha_c            
 
       motor_L, motor_R = compute_motor_speed(alpha_e, regulator, is_finished)
-
-      #if is_finished:
-      #  motor_L = 0
-      #  motor_R = 0
-
-      #elif (alpha_e < 180 and alpha_e > -180) :
-      #  motor_L = PID.Kd * (180-abs(alpha_e)) + PID.Kp * alpha_e
-      #  motor_R = PID.Kd * (180-abs(alpha_e)) - PID.Kp * alpha_e
-
-      #elif alpha_e < -180 :
-      #  alpha_e = 360 + alpha_e
-      #  motor_L = PID.Kd * (180-abs(alpha_e)) + PID.Kp * alpha_e
-      #  motor_R = PID.Kd * (180-abs(alpha_e)) - PID.Kp * alpha_e
-
-      #elif alpha_e > 180 :
-      #  alpha_e = -360 + alpha_e
-      #  motor_L = PID.Kd * (180-abs(alpha_e)) + PID.Kp * alpha_e
-      #  motor_R = PID.Kd * (180-abs(alpha_e)) - PID.Kp * alpha_e
-
-      print("\nconsigne : " + str(alpha_c))
-      print("robot : " + str(thymio.alpha))
-      print("erreur : " + str(alpha_e))
-      print("\nmotor_L : " + str(motor_L))
-      print("motor_R : " + str(motor_R))
      
       await node.set_variables(motors(int(motor_L), int(motor_R)))
-      #await node.set_variables(motors(0, 0))
       pass
     else:
       # Do trajectory without position information
