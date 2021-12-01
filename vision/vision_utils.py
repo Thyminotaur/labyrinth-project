@@ -2,6 +2,7 @@ import numpy as np
 import cv2 as cv
 import cv2.aruco as aruco
 import glob
+import pickle
 
 # ArUco dictionary
 dict_id = aruco.DICT_6X6_50
@@ -219,3 +220,18 @@ def estimate_aruco_axis(img, detected, aruco_id, cam_int, marker_length=6e-3):
   local_rvecs, local_tvecs, _ = cv.aruco.estimatePoseSingleMarkers([corners], marker_length, mtx, dist)
 
   cv.aruco.drawAxis(img, mtx, dist, local_rvecs, local_tvecs, 0.01)
+  return local_rvecs, local_tvecs
+
+def write_predefined_camera_int(path, cam_int):
+  f = open(path, "wb")
+  pickle.dump(cam_int, f)
+
+def load_predefined_camera_int(path):
+  f = open(path, "rb")
+  return pickle.load(f)
+
+def compute_offset_elevation(cam_int, rvecs, tvecs, elevation):
+  (mtx, dist, rvecs, tvecs) = cam_int
+
+  imgpts, _ = cv.projectPoints([[0, 0, elevation]], rvecs, tvecs, mtx, dist)
+  print(imgpts)
