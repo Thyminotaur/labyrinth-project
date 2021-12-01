@@ -1,6 +1,7 @@
 import numpy as np
 import cv2 as cv
 import cv2.aruco as aruco
+import glob
 
 # ArUco dictionary
 dict_id = aruco.DICT_6X6_50
@@ -29,7 +30,7 @@ def detect_aruco(img):
   return detected 
 
 # Get position of ArUco marker
-def get_pos_aruco(img, detected, search_id):
+def get_pos_aruco(detected, search_id):
   (corners, ids, rejected) = detected
 
   if ids is not None:
@@ -44,7 +45,7 @@ def get_pos_aruco(img, detected, search_id):
 # assuming an ArUco is put on top of it
 def localize_thymio(img, detected):
   # Detect aruco
-  (center, c) = get_pos_aruco(img, detected, thymio_id)
+  (center, c) = get_pos_aruco(detected, thymio_id)
 
   if center is None:
     return (None, None, None)
@@ -93,8 +94,9 @@ def detect_labyrinth(img, wall_size):
 
   # Remove noise
   kernel = np.ones((10,10),np.uint8)
+  kernel2 = np.ones((25,25),np.uint8)
   th = cv.morphologyEx(th, cv.MORPH_OPEN, kernel)
-  th = cv.dilate(th, kernel, iterations=1)
+  th = cv.dilate(th, kernel2, iterations=1)
 
   # Detect connected components
   num_labels, labels, stats, _ = cv.connectedComponentsWithStats(th, 8, cv.CV_32S)
@@ -123,7 +125,7 @@ def get_labyrinth_perspective(img):
 
   cs = [None]*4
   for (id, idx) in corner_ids.items():
-    (center, _) = get_pos_aruco(img, detected, id)
+    (center, _) = get_pos_aruco(detected, id)
     if center is not None:
       cs[idx] = center
     else:
@@ -161,3 +163,43 @@ def calibrate_corners(cam):
 def do_adaptive_threshold(img):
   th = cv.adaptiveThreshold(img,255,cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV,31,2)
   return th
+
+# Find camera intrinsics
+def find_camera_intrinsics(folder_path, square_width, cx=9, cy=6):
+  # termination criteria
+  criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+
+  # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
+  objp = np.zeros((cx*cy,3), np.float32)
+  objp[:,:2] = np.mgrid[0:cx,0:cy].T.reshape(-1,2)
+
+  # Arrays to store object points and image points from all the images.
+  objpoints = [] # 3d point in real world space
+  imgpoints = [] # 2d points in image plane.
+
+  images = glob.glob(f'{folder_path}/*.jpg')
+
+  for fname in images:
+    img = cv.imread(fname)
+    gray = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
+
+    # Find the chess board corners
+    ret, corners = cv.findChessboardCorners(gray, (cx,cy),None)
+
+    # If found, add object points, image points (after refining them)
+    if ret == True:
+      objpoints.append(objp)
+
+      corners2 = cv.cornerSubPix(gray,corners,(11,11),(-1,-1),criteria)
+      imgpoints.append(corners2)
+
+      # Draw and display the corners
+      # img = cv.drawChessboardCorners(img, (cx,cy), corners2,ret)
+      # cv.imshow('img',img)
+      # cv.waitKey(500)
+
+  ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
+  print(f'reproj error {ret}')
+  print(f'dist {dist}')
+  cv.destroyAllWindows()
+
