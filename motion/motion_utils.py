@@ -37,8 +37,12 @@ def compute_motor_speed(angle_error, regulator, is_finished):
   elif angle_error > 180 :
     angle_error = -360 + angle_error
 
-  motor_L = regulator.Kp_dist * (180-abs(angle_error)) + regulator.Kp_angle * angle_error
-  motor_R = regulator.Kp_dist * (180-abs(angle_error)) - regulator.Kp_angle * angle_error
+  #motor_L = (regulator.Kp_dist * (180-abs(angle_error)))**2 + regulator.Kp_angle * angle_error
+  #motor_R = (regulator.Kp_dist * (180-abs(angle_error)))**2 - regulator.Kp_angle * angle_error
+
+  motor_L = (regulator.Kp_dist * (180-abs(angle_error))) + regulator.Kp_angle * angle_error
+  motor_R = (regulator.Kp_dist * (180-abs(angle_error))) - regulator.Kp_angle * angle_error
+
 
   return motor_L, motor_R
 
