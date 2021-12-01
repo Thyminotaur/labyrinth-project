@@ -18,6 +18,7 @@ while True:
   # marker_test = cv.imread("../data/terrain_test.jpg")
 
   ret_val, marker_test = cam.read()
+  marker_test = cv.cvtColor(marker_test, cv.COLOR_BGR2GRAY)
 
   # f = open("camera.bin", "wb")
   # pickle.dump(cam_int, f)
@@ -36,7 +37,7 @@ while True:
   if imgpts is not None:
     cv.drawMarker(marker_test, np.int32(imgpts), (0, 0, 255), markerSize=40, thickness=4)
 
-  h, w, _ = marker_test.shape
+  h, w = marker_test.shape
   marker_test = cv.resize(marker_test, (w//2, h//2))
 
 
