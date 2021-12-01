@@ -7,6 +7,7 @@ from navigation.nav_global_utils import *
 from obstacle_avoidance.src.obstacle_avoid_short import *
 from tdmclient import ClientAsync
 import pdb
+from motion.motion_utils import *
 
 # Regulators
 class motors_regulator:
@@ -53,7 +54,7 @@ if M is not None:
   ret_val, img = cam.read()
   dst = crop_labyrinth(img, M)
   dst_gray = cv.cvtColor(dst, cv.COLOR_BGR2GRAY)
-  labyrinth_map = detect_labyrinth(dst_gray, (150,140))
+  labyrinth_map = detect_labyrinth(dst_gray, (140,120))
   initial_center = None
   
   while initial_center is None:  
@@ -181,6 +182,8 @@ async def prog():
 
 
       distance = math.sqrt(pow(thymio_position.x - point_to_go[0], 2) + pow(thymio_position.y - point_to_go[1], 2))
+
+      #distance = 
 
       #if(distance < 20):
       #  point_to_go[0] = rand.randint(100, 600)
