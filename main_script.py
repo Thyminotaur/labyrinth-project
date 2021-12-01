@@ -120,6 +120,8 @@ async def prog():
   node = await client.wait_for_node()
   await node.lock()
 
+  cam_int = load_predefined_camera_int("data/camera.bin")
+
   distance = 0
   point_to_go = [0, 0]
   actual_point = 0
@@ -137,6 +139,13 @@ async def prog():
     detected = detect_aruco(dst_th)
     (_, center, angle) = localize_thymio(dst_th, detected)
 
+    rvecs, tvecs = estimate_aruco_axis(dst, detected, 2, cam_int, marker_length=13e-3)
+    imgpts = compute_offset_elevation(cam_int, rvecs, tvecs, 0.1)
+
+    cv.drawMarker(dst, np.int32(imgpts), (0, 0, 255), markerSize=40, thickness=4)
+    
+    # correction axis
+    # center = imgpts
     
     # Do obstacle avoidance
     # TODO [Sylvain]

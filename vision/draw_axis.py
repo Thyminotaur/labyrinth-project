@@ -22,8 +22,6 @@ detected = detect_aruco(marker_test)
 
 rvecs, tvecs = estimate_aruco_axis(marker_test, detected, 2, cam_int)
 
-# [[[ 2.53948468  0.98920067 -0.11648686]]]
-# [[[ 0.0101194  -0.0045403   0.14878134]]]
 imgpts = compute_offset_elevation(cam_int, rvecs, tvecs, 0.1)
 
 cv.drawMarker(marker_test, np.int32(imgpts), (0, 0, 255), markerSize=40, thickness=4)
