@@ -129,28 +129,23 @@ async def prog():
 
   while M is not None:
     ret_val, img = cam.read()
-    img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-    #img = do_adaptive_threshold(img)
+    img_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
-    dst = crop_labyrinth(img, M)
+    dst = crop_labyrinth(img_gray, M)
     dst_th = do_adaptive_threshold(dst)
     dst = cv.cvtColor(dst, cv.COLOR_GRAY2BGR)
     # Localize thymio
     detected = detect_aruco(dst_th)
     (_, center, angle) = localize_thymio(dst_th, detected)
 
-    if center is not None:
-      detected = detect_aruco(dst)
-      (center, c) = get_pos_aruco(detected, 2)
-      rvecs, tvecs = estimate_aruco_axis(dst, detected, 2, cam_int, marker_length=13e-3)
+    rvecs, tvecs = estimate_aruco_axis(img_gray, detected, 2, cam_int, marker_length=13e-3)
+    imgpts = compute_offset_elevation(cam_int, rvecs, tvecs, 0.1)
 
-      imgpts = compute_offset_elevation(cam_int, rvecs, tvecs, 0.1)
+    offset_center = None
+    if imgpts is not None:
+      offset_center = transform_perspective_point(M, imgpts)
+      cv.drawMarker(dst, np.int32(offset_center), (0, 255, 255), markerSize=40, thickness=4)
 
-      if imgpts is not None:
-        cv.drawMarker(dst, np.int32(imgpts), (0, 0, 255), markerSize=40, thickness=4)
-        center = imgpts
-
-    
     # Do obstacle avoidance
     # TODO [Sylvain]
     ## ------------------------------------------

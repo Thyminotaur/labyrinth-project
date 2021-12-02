@@ -249,3 +249,8 @@ def compute_offset_elevation(cam_int, rvecs, tvecs, elevation):
     return np.float32(imgpts[0][0])
   else:
     return None
+
+def transform_perspective_point(M, p):
+  px = (M[0,0]*p[0] + M[0,1]*p[1] + M[0,2]) / ((M[2,0]*p[0] + M[2,1]*p[1] + M[2,2]))
+  py = (M[1,0]*p[0] + M[1,1]*p[1] + M[1,2]) / ((M[2,0]*p[0] + M[2,1]*p[1] + M[2,2]))
+  return (px, py)
