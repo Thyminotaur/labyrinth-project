@@ -13,20 +13,21 @@ def resize_data(labyrinth, start, goal, scale_factor=10):
 
 def check_feasibility(labyrinth, start, goal):
     feasible = True
-    pos = start[0]
+    initial_start = start[0]
     h, w = labyrinth.shape
-    if (pos[0] < h) and (pos[1] < w) and (pos[0] > 0) and (pos[1] > 0):
-        if labyrinth[start[0]]:
+    if (initial_start[0] < h) and (initial_start[1] < w) and (initial_start[0] > 0) and (initial_start[1] > 0):
+        if labyrinth[initial_start]:
             print(f'Start position {start[0]} too close of a border: finding the closest feasible start...')
             movements = get_movements_8n()
             idx1 = 0
             idx2 = 1
+            pos = initial_start
             while labyrinth[pos]:
                 if idx1>=len(movements):
                     idx2+=1
                     idx1=0
-                neighbor = (pos[0]+movements[idx1][0]*idx2,pos[1]+movements[idx1][1]*idx2)
-                print("Test new start: ",neighbor)
+                neighbor = (initial_start[0]+movements[idx1][0]*idx2,initial_start[1]+movements[idx1][1]*idx2)
+                print(movements[idx1][0]*idx2)
                 if (neighbor[0] < h) and (neighbor[1] < w) and (neighbor[0] > 0) and (neighbor[1] > 0):
                     pos = neighbor
                 idx1+=1
