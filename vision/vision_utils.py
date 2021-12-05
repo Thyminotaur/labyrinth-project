@@ -281,12 +281,12 @@ def load_z_offset_data(path):
 
   (thymio_pos, offset_pos) = saved
 
-  offset_interp = LinearNDInterpolator(thymio_pos, offset_pos, [0, 0])
+  offset_interp = LinearNDInterpolator(thymio_pos, offset_pos, 0)
 
 
-def get_z_offset(x, y):
+def get_z_offset(center):
   if offset_interp is not None:
-    return offset_interp(x, y)
+    return offset_interp(center[0], center[1])
   else:
     print("No interpolator for z offset (please use load_z_offset_data() first)")
     return [0, 0]
