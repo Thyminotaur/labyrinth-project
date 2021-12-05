@@ -51,7 +51,7 @@ if M is not None:
         dst = crop_labyrinth(img, M)
         dst_gray = cv.cvtColor(dst, cv.COLOR_BGR2GRAY)
         detected = detect_aruco(dst_gray)
-        (_, initial_center, _) = localize_thymio(dst_gray, detected)
+        (_, initial_center, _) = localize_thymio(detected)
 
 #######################################PATH FINDING ##########################################
     print("\nStart path finding")
@@ -106,7 +106,8 @@ if M is not None:
         path_founded = False
         global_trajectory = []
 
-cam_int = load_predefined_camera_int("data/camera.bin")
+# Load calibration data for z offset
+load_z_offset_data("data/z_offset.bin")
 
 ####################################### MAIN ##########################################
 
@@ -135,28 +136,19 @@ while M is not None:
     dst = cv.cvtColor(dst, cv.COLOR_GRAY2BGR)
     
     # Localize thymio
-    detected_original = detect_aruco(img_gray)
-    detected = detect_aruco(dst_th)
-    (_, center, angle) = localize_thymio(dst_th, detected)
-
-    rvecs, tvecs = estimate_aruco_axis(img, detected_original, 2, cam_int, marker_length=13e-3)
-    imgpts = compute_offset_elevation(cam_int, rvecs, tvecs, -1)
-
-    if imgpts is not None:
-        (_, center_original, _) = localize_thymio(img_gray, detected_original)
-        cv.drawMarker(img, np.int32(center_original), (0, 0, 255), markerSize=40, thickness=4)
-        cv.drawMarker(img, np.int32(imgpts), (0, 255, 255), markerSize=40, thickness=4)
-    else:
-        cv.putText(img, f'no imgpts!', (20, 20), cv.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255))
+    detected = detect_aruco(img_gray)
+    (_, center, angle) = localize_thymio(detected)
 
     offset_center = None
-    if imgpts is not None:
-        offset_center = transform_perspective_point(M, imgpts)
-        cv.drawMarker(dst, np.int32(offset_center), (0, 255, 255), markerSize=40, thickness=4)
+    if center is not None:
+      offset = get_z_offset(center)
+      offset_center = center + np.array(offset)
+      offset_center = transform_perspective_point(M, offset_center)
+      cv.drawMarker(dst, np.int32(offset_center), (0, 255, 255), markerSize=40, thickness=4)
 
     ################################ MOTION CONTROL ###############################
           
-    #center = offset_center
+    center = offset_center
     
     if (center is not None) and (angle is not None):
         actual_point, point_to_go, prev_point_to_go, is_finished = set_point_to_go(actual_point, point_to_go, global_trajectory, distance, is_finished)
