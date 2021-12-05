@@ -135,11 +135,21 @@ async def prog():
     dst_th = do_adaptive_threshold(dst)
     dst = cv.cvtColor(dst, cv.COLOR_GRAY2BGR)
     # Localize thymio
+    detected_original = detect_aruco(img_gray)
     detected = detect_aruco(dst_th)
     (_, center, angle) = localize_thymio(dst_th, detected)
 
-    rvecs, tvecs = estimate_aruco_axis(img_gray, detected, 2, cam_int, marker_length=13e-3)
-    imgpts = compute_offset_elevation(cam_int, rvecs, tvecs, 0.1)
+    
+
+    rvecs, tvecs = estimate_aruco_axis(img, detected_original, 2, cam_int, marker_length=13e-3)
+    imgpts = compute_offset_elevation(cam_int, rvecs, tvecs, -1)
+
+    if imgpts is not None:
+      (_, center_original, _) = localize_thymio(img_gray, detected_original)
+      cv.drawMarker(img, np.int32(center_original), (0, 0, 255), markerSize=40, thickness=4)
+      cv.drawMarker(img, np.int32(imgpts), (0, 255, 255), markerSize=40, thickness=4)
+    else:
+      cv.putText(img, f'no imgpts!', (20, 20), cv.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255))
 
     offset_center = None
     if imgpts is not None:
@@ -166,8 +176,8 @@ async def prog():
     # deactivate temporaily motion control
     #center = None
            
-
-    if (center is not None):
+    center = offset_center
+    if (center is not None) and (angle is not None):
       actual_point, point_to_go, is_finished = set_point_to_go(actual_point, point_to_go, global_trajectory, distance, is_finished)
 
       # Position and orientation of the thymio
@@ -185,7 +195,9 @@ async def prog():
       alpha_e =  thymio.alpha - alpha_c            
 
       motor_L, motor_R = compute_motor_speed(alpha_e, regulator, is_finished)
-     
+
+      #await node.set_variables(motors(0,0))
+
       await node.set_variables(motors(int(motor_L), int(motor_R)))
       pass
     else:
@@ -199,7 +211,7 @@ async def prog():
     global_path = global_path.reshape((-1, 1, 2))
     cv.polylines(dst,[global_path],False,(255, 255, 0))
     
-    # cv.imshow('my webcam', img)
+    cv.imshow('my webcam', img)
     cv.imshow('transformed', dst)
     # cv.imshow('labyrinth', laby)
 

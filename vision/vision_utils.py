@@ -215,7 +215,10 @@ def estimate_aruco_axis(img, detected, aruco_id, cam_int, marker_length=6e-3):
   (mtx, dist, rvecs, tvecs) = cam_int
 
   (corners, ids, rejected) = detected
-
+  
+  if ids is None:
+    return None, None
+  
   all_corners = [corners[i][0] for i, _ in enumerate(ids)]
 
   thymio_index = None
@@ -223,12 +226,12 @@ def estimate_aruco_axis(img, detected, aruco_id, cam_int, marker_length=6e-3):
     if id == thymio_id:
       thymio_index = i
 
-  # (c, corners) = get_pos_aruco(detected, aruco_id)
+  (c, corners) = get_pos_aruco(detected, aruco_id)
 
   if c is not None and thymio_index is not None:
     local_rvecs, local_tvecs, _ = cv.aruco.estimatePoseSingleMarkers(all_corners, marker_length, mtx, dist)
-
-    cv.aruco.drawAxis(img, mtx, dist, local_rvecs, local_tvecs, 0.01)
+ 
+    cv.aruco.drawAxis(img, mtx, dist, local_rvecs[thymio_index], local_tvecs[thymio_index], 0.01)
     return local_rvecs[thymio_index], local_tvecs[thymio_index]
   else:
     return None, None
