@@ -1,6 +1,16 @@
 import numpy as np
 import cv2 as cv
+from scipy.interpolate import LinearNDInterpolator
 
+interp = LinearNDInterpolator([
+  [0.0, 0.0],
+  [5.0, 0.0],
+  [5.0, 5.0],
+  [0.0, 5.0]], [
+    [3, 2], 
+    [0, 2], 
+    [-3, 1], 
+    [1, 1]],
+  0)
 
-A = np.mgrid[0:9,0:6].T.reshape(-1, 2)
-print(A)
+print(interp(5, 5))

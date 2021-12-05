@@ -3,6 +3,7 @@ import cv2 as cv
 import cv2.aruco as aruco
 import glob
 import pickle
+from scipy.interpolate import LinearNDInterpolator
 
 # ArUco dictionary
 dict_id = aruco.DICT_6X6_50
@@ -23,6 +24,9 @@ corner_ids = {
 
 # Ids
 thymio_id = 2
+
+# Thymio offset
+offset_interp = None
 
 # Detect all AruCo in image
 def detect_aruco(img):
@@ -219,7 +223,7 @@ def estimate_aruco_axis(img, detected, aruco_id, cam_int, marker_length=6e-3):
   if ids is None:
     return None, None
   
-  all_corners = [corners[i][0] for i, _ in enumerate(ids)]
+  all_corners = [corners[i][0] for i, id in enumerate(ids) if id == thymio_id]
 
   thymio_index = None
   for i, id in enumerate(ids):
@@ -230,11 +234,22 @@ def estimate_aruco_axis(img, detected, aruco_id, cam_int, marker_length=6e-3):
 
   if c is not None and thymio_index is not None:
     local_rvecs, local_tvecs, _ = cv.aruco.estimatePoseSingleMarkers(all_corners, marker_length, mtx, dist)
+
+    # R = cv.Rodrigues(local_rvecs[0])[0]
+    # R = R @ np.array([
+      # [1, 0, 0],
+      # [0, 0, 1],
+      # [0,-1, 0],
+    # ])
+
+    # if 0 < R[1,1] < 1:
+      # cv.putText(img, f'flipped!', (20, 20), cv.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255))
  
-    cv.aruco.drawAxis(img, mtx, dist, local_rvecs[thymio_index], local_tvecs[thymio_index], 0.01)
-    return local_rvecs[thymio_index], local_tvecs[thymio_index]
+    cv.aruco.drawAxis(img, mtx, dist, local_rvecs[0], local_tvecs[0], 0.01)
+    return local_rvecs[0], local_tvecs[0]
   else:
     return None, None
+
 
 def write_predefined_camera_int(path, cam_int):
   f = open(path, "wb")
@@ -257,3 +272,21 @@ def transform_perspective_point(M, p):
   px = (M[0,0]*p[0] + M[0,1]*p[1] + M[0,2]) / ((M[2,0]*p[0] + M[2,1]*p[1] + M[2,2]))
   py = (M[1,0]*p[0] + M[1,1]*p[1] + M[1,2]) / ((M[2,0]*p[0] + M[2,1]*p[1] + M[2,2]))
   return (px, py)
+
+def load_z_offset_data(path):
+  global offset_interp
+
+  f = open(path, "rb")
+  saved = pickle.load(f)
+
+  (thymio_pos, offset_pos) = saved
+
+  offset_interp = LinearNDInterpolator(thymio_pos, offset_pos, 0)
+
+
+def get_z_offset(center):
+  if offset_interp is not None:
+    return offset_interp(center[0], center[1])
+  else:
+    print("No interpolator for z offset (please use load_z_offset_data() first)")
+    return [0, 0]
