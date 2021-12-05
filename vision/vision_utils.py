@@ -219,7 +219,7 @@ def estimate_aruco_axis(img, detected, aruco_id, cam_int, marker_length=6e-3):
   if ids is None:
     return None, None
   
-  all_corners = [corners[i][0] for i, _ in enumerate(ids)]
+  all_corners = [corners[i][0] for i, id in enumerate(ids) if id == thymio_id]
 
   thymio_index = None
   for i, id in enumerate(ids):
@@ -230,11 +230,22 @@ def estimate_aruco_axis(img, detected, aruco_id, cam_int, marker_length=6e-3):
 
   if c is not None and thymio_index is not None:
     local_rvecs, local_tvecs, _ = cv.aruco.estimatePoseSingleMarkers(all_corners, marker_length, mtx, dist)
+
+    # R = cv.Rodrigues(local_rvecs[0])[0]
+    # R = R @ np.array([
+      # [1, 0, 0],
+      # [0, 0, 1],
+      # [0,-1, 0],
+    # ])
+
+    # if 0 < R[1,1] < 1:
+      # cv.putText(img, f'flipped!', (20, 20), cv.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255))
  
-    cv.aruco.drawAxis(img, mtx, dist, local_rvecs[thymio_index], local_tvecs[thymio_index], 0.01)
-    return local_rvecs[thymio_index], local_tvecs[thymio_index]
+    cv.aruco.drawAxis(img, mtx, dist, local_rvecs[0], local_tvecs[0], 0.01)
+    return local_rvecs[0], local_tvecs[0]
   else:
     return None, None
+
 
 def write_predefined_camera_int(path, cam_int):
   f = open(path, "wb")
