@@ -30,11 +30,11 @@ def compute_angle(actual_point, point_to_go):
   return angle
 
 def compute_regulator_gain(distance, distance_tot):
-  if distance < 20 or (distance_tot - distance) < 20:
+  if distance < 40 or (distance_tot - distance) < 40:
       Kp_angle = 4
       Kp_dist = 0.5
 
-  elif distance > 20 or (distance_tot - distance) < 20:
+  elif distance > 40 and (distance_tot - distance) > 40:
       Kp_angle = 1
       Kp_dist = 1
 
@@ -63,10 +63,12 @@ def compute_motor_speed(angle_error, regulator, is_finished):
 
   return motor_L, motor_R
 
-def set_point_to_go(actual_point, point_to_go, global_trajectory, distance, is_finished):
+def set_point_to_go(center, actual_point, prev_point_to_go, point_to_go, global_trajectory, distance, is_finished):
   if actual_point == 0:
     point_to_go = list(global_trajectory[0])
     actual_point = 1
+    prev_point_to_go = center
+
 
   # Point to go = Position of the robot if we reach the end of the list
   elif actual_point >= len(global_trajectory) and distance < 10:
@@ -74,9 +76,10 @@ def set_point_to_go(actual_point, point_to_go, global_trajectory, distance, is_f
 
   # If the robot is close to the point to go -> Next point
   elif distance < 10:
+    prev_point_to_go = point_to_go
     point_to_go = list(global_trajectory[actual_point])
     actual_point += 1
 
-  return actual_point, point_to_go, is_finished
+  return actual_point, point_to_go, prev_point_to_go, is_finished
 
 

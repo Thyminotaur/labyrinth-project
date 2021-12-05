@@ -1,5 +1,5 @@
 def obstacle_avoidance_speed(prox):
-  obstThr = 3000
+  obstThr = 1000
   obstacleGain = 0.05
   speed0 = 400
   obstacle_detected = False

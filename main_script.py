@@ -8,30 +8,9 @@ from obstacle_avoidance.src.obstacle_avoid_short import *
 from tdmclient import ClientAsync
 import pdb
 from motion.motion_utils import *
-
-# Regulators
-#class motors_regulator:
-#    Kp = 4
-#    Kd = 0.5
-#    Ki = 1
-
-#class robot_position:
-#    x = 0.0
-#    y = 0.0
-#    position = [0, 0]
-#    alpha = 0.0
-
-#PID = motors_regulator()
     
 regulator = motors_regulator()
 thymio = robot_position()
-
-# motors
-def motors(left, right):
-    return {
-        "motor.left.target": [left],
-        "motor.right.target": [right],
-    }
 
 #init tdm client
 client = ClientAsync()
@@ -52,68 +31,68 @@ while True:
   if M is None:
     break
 
-# if M is not None:
-  # # Get the labyrinth map
-  # ret_val, img = cam.read()
-  # dst = crop_labyrinth(img, M)
-  # dst_gray = cv.cvtColor(dst, cv.COLOR_BGR2GRAY)
-  # labyrinth_map = detect_labyrinth(dst_gray, (120,100))
-  # initial_center = None
-  # 
-  # while initial_center is None:  
-    # # Localize thymio
-    # ret_val, img = cam.read()
-    # dst = crop_labyrinth(img, M)
-    # dst_gray = cv.cvtColor(dst, cv.COLOR_BGR2GRAY)
-    # detected = detect_aruco(dst_gray)
-    # (_, initial_center, _) = localize_thymio(dst_gray, detected)
+if M is not None:
+  # Get the labyrinth map
+  ret_val, img = cam.read()
+  dst = crop_labyrinth(img, M)
+  dst_gray = cv.cvtColor(dst, cv.COLOR_BGR2GRAY)
+  labyrinth_map = detect_labyrinth(dst_gray, (120,100))
+  initial_center = None
+  
+  while initial_center is None:  
+    # Localize thymio
+    ret_val, img = cam.read()
+    dst = crop_labyrinth(img, M)
+    dst_gray = cv.cvtColor(dst, cv.COLOR_BGR2GRAY)
+    detected = detect_aruco(dst_gray)
+    (_, initial_center, _) = localize_thymio(dst_gray, detected)
 
-  # if True:
-      # ### Compute the trajectory TODO David
-      # cv.imwrite("labyrinth_map_real.png", labyrinth_map)
+  if True:
+      ### Compute the trajectory TODO David
+      cv.imwrite("labyrinth_map_real.png", labyrinth_map)
 
-      # ## Set parameters
-      # start = [(int(initial_center[1]),int(initial_center[0]))]
-      # goal = find_goal(labyrinth_map)
-      # movement_type = "4N"
-      # cost = [1, np.sqrt(2), 5]
+      ## Set parameters
+      start = [(int(initial_center[1]),int(initial_center[0]))]
+      goal = find_goal(labyrinth_map)
+      movement_type = "4N"
+      cost = [1, np.sqrt(2), 5]
 
-      # # resize for faster computation
-      # scale_factor = 10
-      # labyrinth_map_reduced, start, goal = resize_data(labyrinth_map, start, goal, scale_factor)
+      # resize for faster computation
+      scale_factor = 10
+      labyrinth_map_reduced, start, goal = resize_data(labyrinth_map, start, goal, scale_factor)
 
-      # # check feasibility of start and goal
-      # feasible, start = check_feasibility(labyrinth_map_reduced, start, goal)
+      # check feasibility of start and goal
+      feasible, start = check_feasibility(labyrinth_map_reduced, start, goal)
 
-      # if feasible:
-          # labyrinth_map_reduced_color = cv.cvtColor(labyrinth_map_reduced, cv.COLOR_GRAY2BGR)
-          # labyrinth_map_reduced_color[start[0]] = (0, 255, 0)
-          # for pos in goal:
-              # labyrinth_map_reduced_color[pos] = (0, 0, 255)
-          # cv.imwrite("labyrinth_map_reduced_real.png", labyrinth_map_reduced)
+      if feasible:
+          labyrinth_map_reduced_color = cv.cvtColor(labyrinth_map_reduced, cv.COLOR_GRAY2BGR)
+          labyrinth_map_reduced_color[start[0]] = (0, 255, 0)
+          for pos in goal:
+              labyrinth_map_reduced_color[pos] = (0, 0, 255)
+          cv.imwrite("labyrinth_map_reduced_real.png", labyrinth_map_reduced)
 
-          # print("Start and goal are feasible. Starting A*")
+          print("Start and goal are feasible. Starting A*")
 
-          # ## find the trajectory
-          # # A star call to find the exit with least cost motion
-          # global_path, closedSet = A_Star(start, goal, labyrinth_map_reduced, cost, movement_type)
+          ## find the trajectory
+          # A star call to find the exit with least cost motion
+          global_path, closedSet = A_Star(start, goal, labyrinth_map_reduced, cost, movement_type)
 
-          # if global_path:
-              # path_founded = True
-              # # Remove unnecessary intermediate position
-              # global_trajectory = get_linear_trajectory(global_path)
+          if global_path:
+              path_founded = True
+              # Remove unnecessary intermediate position
+              global_trajectory = get_linear_trajectory(global_path)
 
-              # # Resize to original size
-              # global_trajectory = scale_up_trajectory(global_trajectory, scale_factor)
+              # Resize to original size
+              global_trajectory = scale_up_trajectory(global_trajectory, scale_factor)
 
-              # # Convert from matrix indexes to cartesian coordinates
-              # global_trajectory = [(x, y) for y, x in global_trajectory]
-          # else:
-              # pass
-      # else:
-          # print("Current initial configuration NOT feasible")
-          # path_founded = False
-          # global_trajectory = []
+              # Convert from matrix indexes to cartesian coordinates
+              global_trajectory = [(x, y) for y, x in global_trajectory]
+          else:
+              pass
+      else:
+          print("Current initial configuration NOT feasible")
+          path_founded = False
+          global_trajectory = []
       #pdb.set_trace()
 
 async def prog():
@@ -196,9 +175,9 @@ async def prog():
 
       motor_L, motor_R = compute_motor_speed(alpha_e, regulator, is_finished)
 
-      await node.set_variables(motors(0,0))
+      #await node.set_variables(motors(0,0))
 
-      # await node.set_variables(motors(int(motor_L), int(motor_R)))
+      await node.set_variables(motors(int(motor_L), int(motor_R)))
       pass
     else:
       # Do trajectory without position information

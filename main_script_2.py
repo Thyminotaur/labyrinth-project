@@ -115,6 +115,7 @@ print("\nSTART MAIN")
 
 distance = 0
 point_to_go = [0, 0]
+prev_point_to_go = [0,0]
 actual_point = 0
 is_finished = False
 
@@ -151,7 +152,7 @@ while M is not None:
     center = offset_center
     
     if (center is not None) and (angle is not None):
-        actual_point, point_to_go, prev_point_to_go, is_finished = set_point_to_go(actual_point, point_to_go, global_trajectory, distance, is_finished)
+        actual_point, point_to_go, prev_point_to_go, is_finished = set_point_to_go(center, actual_point, prev_point_to_go, point_to_go, global_trajectory, distance, is_finished)
 
         # Position and orientation of the thymio
         thymio.alpha = 180.0 * angle / math.pi
@@ -167,17 +168,22 @@ while M is not None:
 
         aw(node.wait_for_variables({"prox.horizontal"}))
         prox = node.v.prox.horizontal
-        print("\n" + str(prox[1]))
+
+        # Compute regulator gain depending on the position of the robot wrt the actual and previous point
+        regulator.Kp_angle, regulator.Kp_dist = compute_regulator_gain(distance, distance_tot)
 
         # Compute and set motors speed
         motor_L_obstacle, motor_R_obstacle = obstacle_avoidance_speed(prox)
         motor_L, motor_R = compute_motor_speed(alpha_e, regulator, is_finished)
         motor_L += motor_L_obstacle
         motor_R += motor_R_obstacle
+
+        print("\n" + str(motor_L_obstacle))
+
         aw(node.set_variables(motors(motor_L, motor_R)))
 
         # Draw indications
-        cv.circle(dst, (int(thymio.x), int(thymio.y)), 5, (255,255,255))
+        cv.circle(dst, (int(thymio.x), int(thymio.y)), 40, (255,255,255))
         cv.line(dst, (int(thymio.x), int(thymio.y)), (point_to_go[0], point_to_go[1]), (255,255,255), 5)
 
     else :
