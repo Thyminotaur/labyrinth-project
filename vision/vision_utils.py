@@ -86,7 +86,7 @@ def erase_aruco(img, detected):
 # Gives a binary grid representation of 
 # the labyrinth
 # img must be grayscale
-def detect_labyrinth(img, wall_size):
+def detect_labyrinth(img):
   h,w = img.shape
 
   # Remove AruCo
@@ -119,11 +119,51 @@ def detect_labyrinth(img, wall_size):
   # result = th
   cv.imwrite("global_trajectory_real_resized_test.png", th)
 
-  # Dilate walls
-  kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE,wall_size)
+  # Dilate along both x and y direction
+  kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE,(10, 10))
   result = cv.dilate(result,kernel,iterations = 1)
+  result = dilate_walls_max(result, [5, 5], [10, 10])
+
+  result = dilate_walls_max(result, [5, 5],[10, 0])
+  result = dilate_walls_max(result, [5, 5], [0, 10])
 
   return result
+
+# Dilate until different number of components
+def dilate_walls_max(img, init_wall_size, wall_inc):
+  wall_size = init_wall_size
+
+  num_components_previous, _, _, _ = cv.connectedComponentsWithStats(img, 8, cv.CV_32S)
+
+  # Check that the dilate at first doesn't affect the connected components
+  # count
+  kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE,wall_size)
+  dilated = cv.dilate(img,kernel,iterations = 1)
+
+  num_labels, _, _, _ = cv.connectedComponentsWithStats(dilated, 8, cv.CV_32S)
+
+  if num_labels < num_components_previous:
+    return img
+
+  # Dilate by increment and check that the number of 
+  # connected components stay the same
+  while True:
+    wall_size[0] += wall_inc[0]
+    wall_size[1] += wall_inc[1]
+
+    kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE,wall_size)
+    dilated = cv.dilate(img,kernel,iterations = 1)
+
+    num_labels, _, _, _ = cv.connectedComponentsWithStats(dilated, 8, cv.CV_32S)
+
+    if num_components_previous > num_labels:
+      wall_size[0] -= wall_inc[0]
+      wall_size[1] -= wall_inc[1]
+
+      kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE,wall_size)
+      return cv.dilate(img,kernel,iterations = 1)
+
+    num_components_previous = num_labels
 
 # Get perspective transform from img from ArUco corners
 # Returns none if corners are not detected
