@@ -1,10 +1,12 @@
 import numpy as np
 import math
 
+# Mode rotation rapide : Kp_angle = 4, Kp_dist = 0.5
+
 
 class motors_regulator:
-    Kp_angle = 4
-    Kp_dist = 0.5
+    Kp_angle = 1
+    Kp_dist = 1
 
 class robot_position:
     actual_pos = [0, 0]
@@ -15,8 +17,8 @@ class robot_position:
 
 def motors(left, right):
     return {
-        "motor.left.target": [left],
-        "motor.right.target": [right],
+        "motor.left.target": [int(left)],
+        "motor.right.target": [int(right)],
     }
 
 def compute_distance(actual_point, point_to_go):
@@ -27,7 +29,20 @@ def compute_angle(actual_point, point_to_go):
   angle = -180*math.atan2(point_to_go[1] - actual_point[1], point_to_go[0] - actual_point[0])/math.pi
   return angle
 
+def compute_regulator_gain(distance, distance_tot):
+  if distance < 20 or (distance_tot - distance) < 20:
+      Kp_angle = 4
+      Kp_dist = 0.5
+
+  elif distance > 20 or (distance_tot - distance) < 20:
+      Kp_angle = 1
+      Kp_dist = 1
+
+  return Kp_angle, Kp_dist
+
 def compute_motor_speed(angle_error, regulator, is_finished):
+# distance_tot is the total distance between the two actual points 
+
   if is_finished:
     motor_L = 0
     motor_R = 0
@@ -38,7 +53,7 @@ def compute_motor_speed(angle_error, regulator, is_finished):
 
   elif angle_error > 180 :
     angle_error = -360 + angle_error
-
+      
   #motor_L = (regulator.Kp_dist * (180-abs(angle_error)))**2 + regulator.Kp_angle * angle_error
   #motor_R = (regulator.Kp_dist * (180-abs(angle_error)))**2 - regulator.Kp_angle * angle_error
 
