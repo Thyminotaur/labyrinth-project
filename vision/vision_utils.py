@@ -96,9 +96,8 @@ def detect_labyrinth(img):
 
   # Threshold
   #_, th = cv.threshold(img,0,255,cv.THRESH_BINARY_INV+cv.THRESH_OTSU)
-  # th = cv.adaptiveThreshold(img,255,cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV,31,2)
-  th = img
-
+  th = cv.adaptiveThreshold(img,255,cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV,31,2)
+  
   cv.imwrite("global_trajectory_real_resized_th.png", th)
 
   # Remove noise

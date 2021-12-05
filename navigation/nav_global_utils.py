@@ -27,7 +27,7 @@ def check_feasibility(labyrinth, start, goal):
                     idx2+=1
                     idx1=0
                 neighbor = (initial_start[0]+movements[idx1][0]*idx2,initial_start[1]+movements[idx1][1]*idx2)
-                print(movements[idx1][0]*idx2)
+                
                 if (neighbor[0] < h) and (neighbor[1] < w) and (neighbor[0] > 0) and (neighbor[1] > 0):
                     pos = neighbor
                 idx1+=1
