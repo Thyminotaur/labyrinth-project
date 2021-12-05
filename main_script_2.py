@@ -42,7 +42,7 @@ if M is not None:
     ret_val, img = cam.read()
     dst = crop_labyrinth(img, M)
     dst_gray = cv.cvtColor(dst, cv.COLOR_BGR2GRAY)
-    labyrinth_map = detect_labyrinth(dst_gray, (120,100))
+    labyrinth_map = detect_labyrinth(dst_gray, (160,140))
     initial_center = None
   
     while initial_center is None:  
@@ -63,7 +63,7 @@ if M is not None:
     start = [(int(initial_center[1]),int(initial_center[0]))]
     goal = find_goal(labyrinth_map)
     movement_type = "4N"
-    cost = [1, np.sqrt(2), 5]
+    cost = [1, np.sqrt(2), 8]
 
     # resize for faster computation
     scale_factor = 10
@@ -178,12 +178,12 @@ while M is not None:
         motor_L += motor_L_obstacle
         motor_R += motor_R_obstacle
 
-        print("\n" + str(motor_L_obstacle))
-
         aw(node.set_variables(motors(motor_L, motor_R)))
+
 
         # Draw indications
         cv.circle(dst, (int(thymio.x), int(thymio.y)), 40, (255,255,255))
+        cv.circle(dst, (int(thymio.x), int(thymio.y)), 20, (255,255,255))
         cv.line(dst, (int(thymio.x), int(thymio.y)), (point_to_go[0], point_to_go[1]), (255,255,255), 5)
 
     else :

@@ -28,6 +28,9 @@ thymio_id = 2
 # Thymio offset
 offset_interp = None
 
+# Vision thresholds
+WALL_THRESHOLD = 5000
+
 # Detect all AruCo in image
 def detect_aruco(img):
   detected = cv.aruco.detectMarkers(img, arucoDict,
@@ -48,7 +51,7 @@ def get_pos_aruco(detected, search_id):
 
 # Given the ID, gives the position, angle of the Thymio
 # assuming an ArUco is put on top of it
-def localize_thymio(img, detected):
+def localize_thymio(detected):
   # Detect aruco
   (center, c) = get_pos_aruco(detected, thymio_id)
 
@@ -101,17 +104,16 @@ def detect_labyrinth(img, wall_size):
   kernel = np.ones((10,10),np.uint8)
   kernel2 = np.ones((25,25),np.uint8)
   th = cv.morphologyEx(th, cv.MORPH_OPEN, kernel)
-  th = cv.dilate(th, kernel2, iterations=1)
+  # th = cv.dilate(th, kernel2, iterations=1)
 
   # Detect connected components
   num_labels, labels, stats, _ = cv.connectedComponentsWithStats(th, 8, cv.CV_32S)
-  sort_ind = np.argsort(stats[:, cv.CC_STAT_AREA])
 
-  # Pick two biggest components
-  # -1 is all the components
+  # Pick wall components
   result = np.zeros_like(th)
-  result[labels == sort_ind[-2]] = 255
-  result[labels == sort_ind[-3]] = 255
+  for i in range(1, num_labels):
+    if stats[i, cv.CC_STAT_AREA] > WALL_THRESHOLD:
+      result[labels == i] = 255
 
   # temp code
   # result = th

@@ -23,17 +23,17 @@ while True:
 
   detected = detect_aruco(img_gray)
 
-  (_, center, angle) = localize_thymio(img_gray, detected)
+  (_, center, angle) = localize_thymio(detected)
 
   key = cv.waitKey(1)
   if key == ord('w'):
-    offset_y += 1
+    offset_y += 5
   elif key == ord('s'):
-    offset_y -= 1
+    offset_y -= 5
   if key == ord('a'):
-    offset_x += 1
+    offset_x += 5
   elif key == ord('d'):
-    offset_x -= 1
+    offset_x -= 5
   elif key == ord('e'):
     if center is not None:
       corner_idx = corner_idx + 1
@@ -63,3 +63,4 @@ saved = (thymio_pos, offset_pos)
 
 f = open("../data/z_offset.bin", "wb")
 pickle.dump(saved, f)
+f.close()

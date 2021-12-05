@@ -71,11 +71,11 @@ def set_point_to_go(center, actual_point, prev_point_to_go, point_to_go, global_
 
 
   # Point to go = Position of the robot if we reach the end of the list
-  elif actual_point >= len(global_trajectory) and distance < 10:
+  elif actual_point >= len(global_trajectory) and distance < 20:
     is_finished = True
 
   # If the robot is close to the point to go -> Next point
-  elif distance < 10:
+  elif distance < 20:
     prev_point_to_go = point_to_go
     point_to_go = list(global_trajectory[actual_point])
     actual_point += 1
