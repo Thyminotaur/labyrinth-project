@@ -3,6 +3,7 @@ import cv2 as cv
 import cv2.aruco as aruco
 import glob
 import pickle
+from scipy.interpolate import LinearNDInterpolator
 
 # ArUco dictionary
 dict_id = aruco.DICT_6X6_50
@@ -23,6 +24,9 @@ corner_ids = {
 
 # Ids
 thymio_id = 2
+
+# Thymio offset
+offset_interp = None
 
 # Detect all AruCo in image
 def detect_aruco(img):
@@ -268,3 +272,21 @@ def transform_perspective_point(M, p):
   px = (M[0,0]*p[0] + M[0,1]*p[1] + M[0,2]) / ((M[2,0]*p[0] + M[2,1]*p[1] + M[2,2]))
   py = (M[1,0]*p[0] + M[1,1]*p[1] + M[1,2]) / ((M[2,0]*p[0] + M[2,1]*p[1] + M[2,2]))
   return (px, py)
+
+def load_z_offset_data(path):
+  global offset_interp
+
+  f = open(path, "rb")
+  saved = pickle.load(f)
+
+  (thymio_pos, offset_pos) = saved
+
+  offset_interp = LinearNDInterpolator(thymio_pos, offset_pos, [0, 0])
+
+
+def get_z_offset(x, y):
+  if offset_interp is not None:
+    return offset_interp(x, y)
+  else:
+    print("No interpolator for z offset (please use load_z_offset_data() first)")
+    return [0, 0]
