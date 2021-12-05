@@ -96,7 +96,8 @@ def detect_labyrinth(img):
 
   # Threshold
   #_, th = cv.threshold(img,0,255,cv.THRESH_BINARY_INV+cv.THRESH_OTSU)
-  th = cv.adaptiveThreshold(img,255,cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV,31,2)
+  # th = cv.adaptiveThreshold(img,255,cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV,31,2)
+  th = img
 
   cv.imwrite("global_trajectory_real_resized_th.png", th)
 
@@ -120,24 +121,24 @@ def detect_labyrinth(img):
   cv.imwrite("global_trajectory_real_resized_test.png", th)
 
   # Dilate along both x and y direction
-  kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE,(10, 10))
+  kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE,(20, 20))
   result = cv.dilate(result,kernel,iterations = 1)
-  result = dilate_walls_max(result, [5, 5], [10, 10])
+  result = dilate_walls_max(result, [5, 5], [10, 10], [20, 20])
 
-  result = dilate_walls_max(result, [5, 5],[10, 0])
-  result = dilate_walls_max(result, [5, 5], [0, 10])
+  result = dilate_walls_max(result, [5, 5],[10, 0], [20, 20])
+  result = dilate_walls_max(result, [5, 5], [0, 10], [20, 20])
 
   return result
 
 # Dilate until different number of components
-def dilate_walls_max(img, init_wall_size, wall_inc):
+def dilate_walls_max(img, init_wall_size, wall_inc, wall_margin):
   wall_size = init_wall_size
 
   num_components_previous, _, _, _ = cv.connectedComponentsWithStats(img, 8, cv.CV_32S)
 
   # Check that the dilate at first doesn't affect the connected components
   # count
-  kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE,wall_size)
+  kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE,(wall_size[0]+wall_margin[0], wall_size[1]+wall_margin[1]))
   dilated = cv.dilate(img,kernel,iterations = 1)
 
   num_labels, _, _, _ = cv.connectedComponentsWithStats(dilated, 8, cv.CV_32S)
@@ -151,7 +152,7 @@ def dilate_walls_max(img, init_wall_size, wall_inc):
     wall_size[0] += wall_inc[0]
     wall_size[1] += wall_inc[1]
 
-    kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE,wall_size)
+    kernel =cv.getStructuringElement(cv.MORPH_ELLIPSE,(wall_size[0]+wall_margin[0], wall_size[1]+wall_margin[1]))
     dilated = cv.dilate(img,kernel,iterations = 1)
 
     num_labels, _, _, _ = cv.connectedComponentsWithStats(dilated, 8, cv.CV_32S)

@@ -17,7 +17,15 @@ print("hello world")
 
 result = detect_labyrinth(test_scene)
 
-result = cv.cvtColor(result, cv.COLOR_GRAY2BGR)
+# result = cv.cvtColor(result, cv.COLOR_GRAY2BGR)
+
+scale_factor = 10
+h,w = result.shape
+desired_w = w // scale_factor
+desired_h = h // scale_factor
+labyrinth_reduced = cv.resize(result, (desired_w, desired_h), interpolation=cv.INTER_AREA)
+
+_, labyrinth_reduced = cv.threshold(labyrinth_reduced, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
 
 # result[center[1], center[0]] = (0, 0, 255)
 
@@ -27,5 +35,6 @@ result = cv.cvtColor(result, cv.COLOR_GRAY2BGR)
 # show result
 cv.imshow("scene", test_scene)
 cv.imshow("hello", result)
+cv.imshow("reduced", labyrinth_reduced)
 cv.imwrite("../data/detect_labyrinth.png", result)
 cv.waitKey()
