@@ -17,13 +17,16 @@ corner_idx = 1
 thymio_pos = []
 offset_pos = []
 
+fix_center = True
+
 while True:
   ret_val, img = cam.read()
   img_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
   detected = detect_aruco(img_gray)
 
-  (_, center, angle) = localize_thymio(detected)
+  if not fix_center:
+    (_, center, angle) = localize_thymio(detected)
 
   key = cv.waitKey(1)
   if key == ord('w'):
@@ -36,9 +39,12 @@ while True:
     offset_x -= 5
   elif key == ord('e'):
     if center is not None:
-      corner_idx = corner_idx + 1
-      thymio_pos.append((center[0], center[1]))
-      offset_pos.append((offset_x, offset_y))
+      if fix_center:
+        fix_center = False
+      else:
+        corner_idx = corner_idx + 1
+        thymio_pos.append((center[0], center[1]))
+        offset_pos.append((offset_x, offset_y))
 
       if corner_idx > 4:
         break
