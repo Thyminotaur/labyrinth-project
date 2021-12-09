@@ -2,10 +2,12 @@ import numpy as np
 import random as rand
 import math
 from time import sleep
+from timeit import default_timer as timer
 import cv2 as cv
 from vision.vision_utils import *
 from navigation.nav_global_utils import *
 from obstacle_avoidance.src.obstacle_avoid_short import *
+from filter.kalman import *
 from tdmclient import ClientAsync, aw
 import pdb
 from motion.motion_utils import *
@@ -121,6 +123,11 @@ is_finished = False
 
 print_count = 1
 
+start_time = None
+loop_time = 1/10
+states = np.zeros((NB_STATES,1))
+kalmanFilter = kalmanEKF()
+
 #init tdm client
 client = ClientAsync()
 node = aw(client.wait_for_node())
@@ -129,6 +136,8 @@ aw(node.lock())
 print("\nThymio connected")
 
 while M is not None and print_count < 100:
+
+    aw(node.wait_for_variables({"prox.horizontal"}))
 
     ##################################### VISION ##################################
     ret_val, img = cam.read()
@@ -149,50 +158,64 @@ while M is not None and print_count < 100:
       offset_center = transform_perspective_point(M, offset_center)
       cv.drawMarker(dst, np.int32(offset_center), (0, 255, 255), markerSize=40, thickness=4)
 
-    ################################ MOTION CONTROL ###############################
-          
     center = offset_center
-    
+
+    ################################ MOTION CONTROL ###############################
+
+    ## START Kalman filter
+    if start_time is not None: loop_time = timer() - start_time
+    start_time = timer()
+
     if (center is not None) and (angle is not None):
-        actual_point, point_to_go, prev_point_to_go, is_finished = set_point_to_go(center, actual_point, prev_point_to_go, point_to_go, global_trajectory, distance, is_finished)
+        camera_measure = [center[0], center[1], angle]
+    else:
+        camera_measure = None
+    speed_measure = [node.v.motor.right.speed, node.v.motor.left.speed]
 
-        # Position and orientation of the thymio
-        thymio.alpha = 180.0 * angle / math.pi
-        thymio.position = center
-        thymio.x = center[0]
-        thymio.y = center[1]
+    states, _ = kalmanFilter.filter(loop_time, speed_measure, camera_measure)
+    center_filtered = (states[IDX_PX],states[IDX_PY])
+    angle_filtered = states[IDX_THETA]
+    ## END Kalman filter
 
-        print(str(thymio.x) + "\t" + str(thymio.y) + "\t" + str(thymio.alpha) + "\n")
-        print_count = print_count + 1
-        
-        distance = compute_distance(thymio.position, point_to_go)
-        distance_tot = compute_distance(prev_point_to_go, point_to_go)
+    actual_point, point_to_go, prev_point_to_go, is_finished = set_point_to_go(center, actual_point, prev_point_to_go, point_to_go, global_trajectory, distance, is_finished)
 
-        alpha_c = compute_angle(thymio.position, point_to_go)
-        alpha_e =  thymio.alpha - alpha_c            
+    # Position and orientation of the thymio
+    thymio.alpha = 180.0 * angle / math.pi
+    thymio.position = center
+    thymio.x = center[0]
+    thymio.y = center[1]
 
-        aw(node.wait_for_variables({"prox.horizontal"}))
-        prox = node.v.prox.horizontal
+    print(str(thymio.x) + "\t" + str(thymio.y) + "\t" + str(thymio.alpha))
+    print_count = print_count + 1
 
-        # Compute regulator gain depending on the position of the robot wrt the actual and previous point
-        regulator.Kp_angle, regulator.Kp_dist = compute_regulator_gain(distance, distance_tot)
+    distance = compute_distance(thymio.position, point_to_go)
+    distance_tot = compute_distance(prev_point_to_go, point_to_go)
 
-        # Compute and set motors speed
-        motor_L_obstacle, motor_R_obstacle = obstacle_avoidance_speed(prox)
-        motor_L, motor_R = compute_motor_speed(alpha_e, regulator, is_finished)
-        motor_L += motor_L_obstacle
-        motor_R += motor_R_obstacle
+    alpha_c = compute_angle(thymio.position, point_to_go)
+    alpha_e =  thymio.alpha - alpha_c
 
-        #aw(node.set_variables(motors(motor_L, motor_R)))
-        aw(node.set_variables(motors(0, 0)))
+    prox = node.v.prox.horizontal
 
-        # Draw indications
-        cv.circle(dst, (int(thymio.x), int(thymio.y)), 40, (255,255,255))
-        cv.circle(dst, (int(thymio.x), int(thymio.y)), 20, (255,255,255))
-        cv.line(dst, (int(thymio.x), int(thymio.y)), (point_to_go[0], point_to_go[1]), (255,255,255), 5)
+    # Compute regulator gain depending on the position of the robot wrt the actual and previous point
+    regulator.Kp_angle, regulator.Kp_dist = compute_regulator_gain(distance, distance_tot)
 
-    else :
-        aw(node.set_variables(motors(0, 0)))
+    # Compute and set motors speed
+    motor_L_obstacle, motor_R_obstacle = obstacle_avoidance_speed(prox)
+    motor_L, motor_R = compute_motor_speed(alpha_e, regulator, is_finished)
+    motor_L += motor_L_obstacle
+    motor_R += motor_R_obstacle
+
+    #aw(node.set_variables(motors(motor_L, motor_R)))
+    aw(node.set_variables(motors(0, 0)))
+
+    # Draw indications
+    cv.circle(dst, (int(thymio.x), int(thymio.y)), 40, (255,255,255))
+    cv.circle(dst, (int(thymio.x), int(thymio.y)), 20, (255,255,255))
+    cv.line(dst, (int(thymio.x), int(thymio.y)), (point_to_go[0], point_to_go[1]), (255,255,255), 5)
+
+    ## TMP COMMENT FOR KALMAN TEST
+    # else :
+    #     aw(node.set_variables(motors(0, 0)))
     #################################### SHOW IMAGE ################################
 
       # set the path in red
