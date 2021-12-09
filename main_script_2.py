@@ -119,6 +119,8 @@ prev_point_to_go = [0,0]
 actual_point = 0
 is_finished = False
 
+print_count = 1
+
 #init tdm client
 client = ClientAsync()
 node = aw(client.wait_for_node())
@@ -126,7 +128,7 @@ aw(node.lock())
 
 print("\nThymio connected")
 
-while M is not None:
+while M is not None and print_count < 100:
 
     ##################################### VISION ##################################
     ret_val, img = cam.read()
@@ -160,6 +162,9 @@ while M is not None:
         thymio.x = center[0]
         thymio.y = center[1]
 
+        print(str(thymio.x) + "\t" + str(thymio.y) + "\t" + str(thymio.alpha) + "\n")
+        print_count = print_count + 1
+        
         distance = compute_distance(thymio.position, point_to_go)
         distance_tot = compute_distance(prev_point_to_go, point_to_go)
 
@@ -178,8 +183,8 @@ while M is not None:
         motor_L += motor_L_obstacle
         motor_R += motor_R_obstacle
 
-        aw(node.set_variables(motors(motor_L, motor_R)))
-
+        #aw(node.set_variables(motors(motor_L, motor_R)))
+        aw(node.set_variables(motors(0, 0)))
 
         # Draw indications
         cv.circle(dst, (int(thymio.x), int(thymio.y)), 40, (255,255,255))
