@@ -56,7 +56,8 @@ class kalmanEKF():
 
     def filter(self, dt, Zs, Zc = None):
         Zs = np.asarray(Zs).reshape((NB_SPEED_STATES,1))
-        Zc = np.asarray(Zc).reshape((NB_CAM_STATES,1))
+        if Zc is not None:
+            Zc = np.asarray(Zc).reshape((NB_CAM_STATES, 1))
         self.dt = dt
         self.predict()
         self.update(Zs, Zc)

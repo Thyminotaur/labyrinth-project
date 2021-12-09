@@ -167,13 +167,13 @@ while M is not None and print_count < 100:
     start_time = timer()
 
     if (center is not None) and (angle is not None):
-        camera_measure = [center[0], center[1], angle]
+        camera_measure = [center[0], -center[1], angle]
     else:
         camera_measure = None
     speed_measure = [node.v.motor.right.speed, node.v.motor.left.speed]
 
     states, _ = kalmanFilter.filter(loop_time, speed_measure, camera_measure)
-    center_filtered = (states[IDX_PX],states[IDX_PY])
+    center_filtered = (states[IDX_PX],-states[IDX_PY])
     angle_filtered = states[IDX_THETA]
     ## END Kalman filter
 
