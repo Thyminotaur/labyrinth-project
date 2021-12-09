@@ -14,6 +14,7 @@ class robot_position:
     x = 0.0
     y = 0.0
     area_radius = 10
+    position = [0,0]
 
 def motors(left, right):
     return {
@@ -32,11 +33,15 @@ def compute_angle(actual_point, point_to_go):
 def compute_regulator_gain(distance, distance_tot):
   if distance < 40 or (distance_tot - distance) < 40:
       Kp_angle = 4
+      #Kp_angle = 1
+      #Kp_dist = 0.2
       Kp_dist = 0.5
 
   elif distance > 40 and (distance_tot - distance) > 40:
       Kp_angle = 1
       Kp_dist = 1
+      #Kp_dist = 0.8
+      #Kp_angle = 0.8
 
   return Kp_angle, Kp_dist
 

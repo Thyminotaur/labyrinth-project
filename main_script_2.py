@@ -65,7 +65,7 @@ if M is not None:
     start = [(int(initial_center[1]),int(initial_center[0]))]
     goal = find_goal(labyrinth_map)
     movement_type = "4N"
-    cost = [1, np.sqrt(2), 8]
+    cost = [1, np.sqrt(2), 1]
 
     # resize for faster computation
     scale_factor = 10
@@ -121,7 +121,6 @@ prev_point_to_go = [0,0]
 actual_point = 0
 is_finished = False
 
-print_count = 1
 
 start_time = None
 loop_time = 1/10
@@ -135,7 +134,7 @@ aw(node.lock())
 
 print("\nThymio connected")
 
-while M is not None and print_count < 100:
+while M is not None:
 
     aw(node.wait_for_variables({"prox.horizontal"}))
 
@@ -165,28 +164,34 @@ while M is not None and print_count < 100:
     ## START Kalman filter
     if start_time is not None: loop_time = timer() - start_time
     start_time = timer()
+    print(loop_time)
 
     if (center is not None) and (angle is not None):
         camera_measure = [center[0], -center[1], angle]
     else:
         camera_measure = None
+        
     speed_measure = [node.v.motor.right.speed, node.v.motor.left.speed]
 
     states, _ = kalmanFilter.filter(loop_time, speed_measure, camera_measure)
     center_filtered = (states[IDX_PX],-states[IDX_PY])
     angle_filtered = states[IDX_THETA]
     ## END Kalman filter
-
+    #if angle is not None and center is not None:
     actual_point, point_to_go, prev_point_to_go, is_finished = set_point_to_go(center, actual_point, prev_point_to_go, point_to_go, global_trajectory, distance, is_finished)
 
     # Position and orientation of the thymio
-    thymio.alpha = 180.0 * angle / math.pi
-    thymio.position = center
-    thymio.x = center[0]
-    thymio.y = center[1]
+    thymio.alpha = 180.0 * angle_filtered / math.pi
+    #thymio.alpha = 180.0 * angle / math.pi
+    thymio.position = center_filtered
+    #thymio.position = center
+    thymio.x = center_filtered[0]
+    #thymio.x = center[0]
+    thymio.y = center_filtered[1]
+    #thymio.y = center[1]
 
-    print(str(thymio.x) + "\t" + str(thymio.y) + "\t" + str(thymio.alpha))
-    print_count = print_count + 1
+#    print(str(thymio.x) + "\t" + str(thymio.y) + "\t" + str(thymio.alpha))
+
 
     distance = compute_distance(thymio.position, point_to_go)
     distance_tot = compute_distance(prev_point_to_go, point_to_go)
@@ -205,36 +210,39 @@ while M is not None and print_count < 100:
     motor_L += motor_L_obstacle
     motor_R += motor_R_obstacle
 
-    #aw(node.set_variables(motors(motor_L, motor_R)))
-    aw(node.set_variables(motors(0, 0)))
+    aw(node.set_variables(motors(motor_L, motor_R)))
+    #aw(node.set_variables(motors(0, 0)))
 
     # Draw indications
     cv.circle(dst, (int(thymio.x), int(thymio.y)), 40, (255,255,255))
     cv.circle(dst, (int(thymio.x), int(thymio.y)), 20, (255,255,255))
+    if center is not None:
+        cv.circle(dst, (int(center[0]), int(center[1])), 30, (0,255,255))
     cv.line(dst, (int(thymio.x), int(thymio.y)), (point_to_go[0], point_to_go[1]), (255,255,255), 5)
 
-    ## TMP COMMENT FOR KALMAN TEST
-    # else :
-    #     aw(node.set_variables(motors(0, 0)))
-    #################################### SHOW IMAGE ################################
+##        ## TMP COMMENT FOR KALMAN TEST
+##    else :
+##        aw(node.set_variables(motors(0, 0)))
+        #################################### SHOW IMAGE ################################
 
-      # set the path in red
+          # set the path in red
     global_path = np.asarray(global_trajectory, np.int32)
     global_path = global_path.reshape((-1, 1, 2))
     cv.polylines(dst,[global_path],False,(255, 255, 0))
-    
+        
     cv.imshow('my webcam', img)
     cv.imshow('transformed', dst)
-    # cv.imshow('labyrinth', laby)
+        # cv.imshow('labyrinth', laby)
 
     key = cv.waitKey(1)
     if key == 27: 
-      break  # esc to quit
+        break  # esc to quit
 
     #sleep(0.010)
 
 """################################## END ############################"""    
 
+aw(node.set_variables(motors(0, 0)))
 aw(node.unlock())
 cv.destroyAllWindows()
     

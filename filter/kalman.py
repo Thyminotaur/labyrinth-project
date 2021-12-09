@@ -18,15 +18,16 @@ NB_SPEED_STATES = 2
 
 PXL_TO_MM = 1.268346
 MM_TO_PXL = 0.788428
-SPEED_FACTOR = 27.75 # [pxl/s] to thymio's unit
-THYMIO_DIA = 95 # [mm]
+SPEED_FACTOR = 3.75#2.775 # [pxl/s] to thymio's unit
+THYMIO_DIA = 95. # [mm]
+#THYMIO_DIA = 120
 
 ALMOST_ZERO = 1e-6
 
 class kalmanEKF():
     def __init__(self):
         # initialization matrix dimensions
-        self.X = np.zeros((NB_STATES,1))
+        self.X = np.ones((NB_STATES,1))*ALMOST_ZERO
         self.F = np.zeros((NB_STATES,NB_STATES))
         self.P = np.zeros((NB_STATES,NB_STATES))
         self.Q = np.zeros((NB_STATES,NB_STATES))
@@ -38,12 +39,12 @@ class kalmanEKF():
 
         # default values
         init_uncertainty = 1000
-        init_process_noise = 1
+        init_process_noise = [1., 1., 1., 5., 5.]
         pos_state_to_pos_measure = np.eye(NB_CAM_STATES)
         speed_state_to_vr_measure = np.array([1, (THYMIO_DIA/2)*MM_TO_PXL]) * SPEED_FACTOR
         speed_state_to_vl_measure = np.array([1, -(THYMIO_DIA/2)*MM_TO_PXL]) * SPEED_FACTOR
         init_cam_noise = [0.406, 0.030, 0.117]
-        init_speed_noise = [9.32, 3.89]
+        init_speed_noise = [6.32, 3.89]#[9.32, 3.89]
         dt = 1/10
 
         self.set_P(init_uncertainty)
@@ -53,14 +54,27 @@ class kalmanEKF():
         self.set_Rc(init_cam_noise)
         self.set_Rs(init_speed_noise)
         self.dt = dt
+        self.i = 0
 
     def filter(self, dt, Zs, Zc = None):
         Zs = np.asarray(Zs).reshape((NB_SPEED_STATES,1))
+        
+#       if self.i > 10 : Zc = None
+
+
+#        if self.i <= 11:
+#           self.i += 1
+        
         if Zc is not None:
             Zc = np.asarray(Zc).reshape((NB_CAM_STATES, 1))
+            if Zc[IDX_THETA] < 0: Zc[IDX_THETA] += 2*np.pi    
         self.dt = dt
+        
         self.predict()
         self.update(Zs, Zc)
+        
+        if Zc is not None:
+            if Zc[IDX_THETA] > np.pi: Zc[IDX_THETA] -= 2*np.pi
         return self.X, self.P
 
     def predict(self):
