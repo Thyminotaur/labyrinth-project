@@ -16,8 +16,9 @@ NB_STATES = 5
 NB_CAM_STATES = 3
 NB_SPEED_STATES = 2
 
-PXL_TO_MM = 1
-SPEED_FACTOR = 1 # [mm/s] to thymio's unit
+PXL_TO_MM = 1.268346
+MM_TO_PXL = 0.788428
+SPEED_FACTOR = 27.75 # [pxl/s] to thymio's unit
 THYMIO_DIA = 95 # [mm]
 
 ALMOST_ZERO = 1e-6
@@ -39,10 +40,10 @@ class kalmanEKF():
         init_uncertainty = 1000
         init_process_noise = 1
         pos_state_to_pos_measure = np.eye(NB_CAM_STATES)
-        speed_state_to_vr_measure = np.array([PXL_TO_MM, (THYMIO_DIA/2)]) * SPEED_FACTOR
-        speed_state_to_vl_measure = np.array([PXL_TO_MM, -(THYMIO_DIA / 2)]) * SPEED_FACTOR
-        init_cam_noise = 1
-        init_speed_noise = 1
+        speed_state_to_vr_measure = np.array([1, (THYMIO_DIA/2)*MM_TO_PXL]) * SPEED_FACTOR
+        speed_state_to_vl_measure = np.array([1, -(THYMIO_DIA/2)*MM_TO_PXL]) * SPEED_FACTOR
+        init_cam_noise = [0.406, 0.030, 0.117]
+        init_speed_noise = [9.32, 3.89]
         dt = 1/10
 
         self.set_P(init_uncertainty)
@@ -54,6 +55,8 @@ class kalmanEKF():
         self.dt = dt
 
     def filter(self, dt, Zs, Zc = None):
+        Zs = np.asarray(Zs).reshape((NB_SPEED_STATES,1))
+        Zc = np.asarray(Zc).reshape((NB_CAM_STATES,1))
         self.dt = dt
         self.predict()
         self.update(Zs, Zc)
@@ -72,6 +75,7 @@ class kalmanEKF():
         self.X = self.X + K @ Y
         self.P = (np.eye(NB_STATES)- K @ self.Hs) @ self.P
 
+        # update with camera measurement
         if Zc is not None:
             Y = Zc - self.Hc @ self.X
             S = self.Hc @ self.P @ self.Hc.T + self.Rc
@@ -99,7 +103,7 @@ class kalmanEKF():
             self.X[IDX_THETA] = (theta + w*dt) % (2.0*np.pi)
 
     def evaluate_F(self):
-        # Calculation of the Jacobian of our non linear state prediction system
+        # Calculation of the Jacobian of our non linear state prediction system f
         x = self.X[IDX_PX]
         y = self.X[IDX_PY]
         theta = self.X[IDX_THETA]
