@@ -162,7 +162,7 @@ while M is not None and print_count < 100:
         thymio.x = center[0]
         thymio.y = center[1]
 
-        print(str(thymio.x) + "\t" + str(thymio.y) + "\t" + str(thymio.alpha) + "\n")
+        print(str(thymio.x) + "\t" + str(thymio.y) + "\t" + str(thymio.alpha))
         print_count = print_count + 1
         
         distance = compute_distance(thymio.position, point_to_go)
