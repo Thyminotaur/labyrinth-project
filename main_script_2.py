@@ -167,14 +167,16 @@ while M is not None:
     print(loop_time)
 
     if (center is not None) and (angle is not None):
-        camera_measure = [center[0], -center[1], angle]
+        camera_measure = [center[0]*PXL_TO_MM, -center[1]*PXL_TO_MM, angle]
     else:
         camera_measure = None
-        
-    speed_measure = [node.v.motor.right.speed, node.v.motor.left.speed]
+
+    speed_r_measure = node.v.motor.right.speed*SPEED_FACTOR_TO_WORLD
+    speed_l_measure = node.v.motor.left.speed*SPEED_FACTOR_TO_WORLD
+    speed_measure = [(speed_r_measure+speed_l_measure)/2, (speed_r_measure-speed_l_measure)/THYMIO_DIA]
 
     states, _ = kalmanFilter.filter(loop_time, speed_measure, camera_measure)
-    center_filtered = (states[IDX_PX],-states[IDX_PY])
+    center_filtered = (states[IDX_PX]*MM_TO_PXL,-states[IDX_PY]*MM_TO_PXL)
     angle_filtered = states[IDX_THETA]
     ## END Kalman filter
     #if angle is not None and center is not None:
