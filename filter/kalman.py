@@ -26,7 +26,7 @@ NB_SPEED_STATES = 2
 PXL_TO_MM = 1148/1020 #1.268346
 MM_TO_PXL = 1/PXL_TO_MM #0.788428
 SPEED_FACTOR_TO_THYMIO = 3.75 #2.775 # [pxl/s] to thymio's unit
-SPEED_FACTOR_TO_WORLD = 0.28411 # thymio's unit to [mm/s]
+SPEED_FACTOR_TO_WORLD = 4.22#0.28411 # thymio's unit to [mm/s]
 THYMIO_DIA = 95. # [mm]
 #THYMIO_DIA = 120
 
@@ -40,7 +40,7 @@ class kalmanEKF():
         self.Q = np.zeros((NB_STATES,NB_STATES))
         self.P = np.zeros((NB_STATES,NB_STATES))
 
-        self.Zs = np.zeros(NB_SPEED_STATES,1)
+        self.Zs = np.zeros((NB_SPEED_STATES,1))
         self.Hs = np.zeros((NB_SPEED_STATES,NB_STATES))
         self.Rs = np.zeros((NB_SPEED_STATES,NB_SPEED_STATES))
 
@@ -49,23 +49,23 @@ class kalmanEKF():
         self.Rc = np.zeros((NB_CAM_STATES, NB_CAM_STATES))
         self.camAvailable = False
 
+        self.dt = 1 / 10
 
         # default values
         self.predict_X() # zeros for all except w which is almost zeros
-        self.set_Q([9., 9., 0.0076, 4., 0.0685]) # ecart-type eq: [3mm, 3mm, 5deg=0.0873rad, 2mm/s, 15deg/s=0.2618rad/s] #original: [1., 1., 1., 5., 5.] (px^2,px^2,rad^2,px^2/s^2, rad^2/s^2)
+        self.set_Q([1., 1., 1., 1, 1]) # [9., 9., 0.0076, 4., 0.0685]ecart-type eq: [3mm, 3mm, 5deg=0.0873rad, 2mm/s, 15deg/s=0.2618rad/s] #original: [1., 1., 1., 5., 5.] (px^2,px^2,rad^2,px^2/s^2, rad^2/s^2)
         #self.set_Q([5., 5., 0.087, 6.15, 0.1]) # some values to test
         self.set_P(1000)
 
         self.Hs[:,IDX_SPEED] = np.eye(NB_SPEED_STATES) #[speed_state_to_vr_measure, speed_state_to_vl_measure]
-        self.set_Rs([1., 0.0076]) # ecart-type eq: [1 mm/s, 5deg/s=0.0873rad/s] #original: [9.32, 3.89] (px^2/s^2) (update good [6.32, 3.89])
+        self.set_Rs([1., 1.]) # [1., 0.0076]ecart-type eq: [1 mm/s, 5deg/s=0.0873rad/s] #original: [9.32, 3.89] (px^2/s^2) (update good [6.32, 3.89])
         #self.set_Rs([6.15, 0.01]) # some values to test
         # speed_state_to_vr_measure = np.array([1, (THYMIO_DIA/2)*MM_TO_PXL]) * SPEED_FACTOR
         # speed_state_to_vl_measure = np.array([1, -(THYMIO_DIA/2)*MM_TO_PXL]) * SPEED_FACTOR
 
         self.Hc[:, IDX_CAM] = np.eye(NB_CAM_STATES)
-        self.set_Rc([1., 0.25, 0.031]) #ecart-type eq: [1mm, 0.5mm, 1deg=0.175rad] original: [0.406, 0.030, 0.117] (px^2,px^2,deg^2)
+        self.set_Rc([0.01, 0.01, 0.01]) #[1., 0.25, 0.031]ecart-type eq: [1mm, 0.5mm, 1deg=0.175rad] original: [0.406, 0.030, 0.117] (px^2,px^2,deg^2)
         #self.set_Rc([4., 4., 0.05]) # some values to test
-        self.dt = 1/10
 
     def filter(self, dt, speed_measure, camera_measure = None):
 
@@ -79,20 +79,20 @@ class kalmanEKF():
         self.dt = dt
 
         self.predict()
-        self.update(Zs, Zc)
+        self.update()
         
         # if Zc is not None:
         #     if Zc[IDX_THETA] > np.pi: Zc[IDX_THETA] -= 2*np.pi
-        return self.X, self.P
+        #return self.X, self.P
 
     def predict(self):
         self.evaluate_F()
         self.P = self.F @ self.P @ self.F.T + self.Q
         self.predict_X()
 
-    def update(self, Zs, Zc):
+    def update(self):
         # update with speed measurement
-        Y = Zs - self.Hs @ self.X
+        Y = self.Zs - self.Hs @ self.X
         S = self.Hs @ self.P @ self.Hs.T + self.Rs
         K = self.P @ self.Hs.T @ np.linalg.inv(S)
         self.X = self.X + K @ Y
@@ -100,7 +100,7 @@ class kalmanEKF():
 
         # update with camera measurement
         if self.camAvailable:
-            Y = Zc - self.Hc @ self.X
+            Y = self.Zc - self.Hc @ self.X
             S = self.Hc @ self.P @ self.Hc.T + self.Rc
             K = self.P @ self.Hc.T @ np.linalg.inv(S)
             self.P = (np.eye(NB_STATES) - K @ self.Hc) @ self.P

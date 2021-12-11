@@ -134,6 +134,7 @@ aw(node.lock())
 
 print("\nThymio connected")
 
+i = 0
 while M is not None:
 
     aw(node.wait_for_variables({"prox.horizontal"}))
@@ -175,9 +176,13 @@ while M is not None:
     speed_l_measure = node.v.motor.left.speed*SPEED_FACTOR_TO_WORLD
     speed_measure = [(speed_r_measure+speed_l_measure)/2, (speed_r_measure-speed_l_measure)/THYMIO_DIA]
 
-    states, _ = kalmanFilter.filter(loop_time, speed_measure, camera_measure)
-    center_filtered = (states[IDX_PX]*MM_TO_PXL,-states[IDX_PY]*MM_TO_PXL)
+    #states, _ = kalmanFilter.filter(loop_time, speed_measure, camera_measure)
+    kalmanFilter.filter(loop_time, speed_measure, camera_measure)
+    center_filtered = (kalmanFilter.X[IDX_PX]*MM_TO_PXL,-kalmanFilter.X[IDX_PY]*MM_TO_PXL)
     angle_filtered = states[IDX_THETA]
+    w_filterstates[IDX_W] *= 180/np.pi
+    if i
+    print(states)
     ## END Kalman filter
 
     #if angle is not None and center is not None:
