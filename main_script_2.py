@@ -177,6 +177,7 @@ while M is not None:
     center_filtered = (states[IDX_PX],-states[IDX_PY])
     angle_filtered = states[IDX_THETA]
     ## END Kalman filter
+
     #if angle is not None and center is not None:
     actual_point, point_to_go, prev_point_to_go, is_finished = set_point_to_go(center, actual_point, prev_point_to_go, point_to_go, global_trajectory, distance, is_finished)
 

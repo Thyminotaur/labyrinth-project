@@ -25,8 +25,8 @@ while True:
     c = np.int32(corners[i][0])
     center = (c[0]+c[1]+c[2]+c[3])//4
     for i in range(4):
-      cv.line(img, c[i], c[(i+1)%4], (255, 0, 0), 2)
-    cv.putText(img, f'id = {id[0]}', center, cv.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255))
+      cv.line(img, tuple(c[i]), tuple(c[(i+1)%4]), (255, 0, 0), 2)
+    cv.putText(img, f'id = {id[0]}', tuple(center), cv.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255))
 
   cv.imshow('my webcam', img)
   if cv.waitKey(1) == 27: 
