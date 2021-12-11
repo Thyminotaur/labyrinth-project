@@ -29,7 +29,7 @@ thymio_id = 2
 offset_interp = None
 
 # Vision thresholds
-WALL_THRESHOLD = 2500
+WALL_THRESHOLD = 5000
 
 # Detect all AruCo in image
 def detect_aruco(img):
@@ -114,7 +114,7 @@ def detect_labyrinth(img):
   cv.imwrite("global_trajectory_real_resized_test.png", th)
 
   # Dilate along both x and y direction
-  kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE,(20, 20))
+  kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE,(70, 70))
   result = cv.dilate(result,kernel,iterations = 1)
   result = dilate_walls_max(result, [5, 5], [10, 10], [20, 20])
 
