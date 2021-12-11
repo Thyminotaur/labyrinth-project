@@ -29,7 +29,7 @@ thymio_id = 2
 offset_interp = None
 
 # Vision thresholds
-WALL_THRESHOLD = 5000
+WALL_THRESHOLD = 2500
 
 # Detect all AruCo in image
 def detect_aruco(img):
@@ -99,7 +99,7 @@ def detect_labyrinth(img):
   cv.imwrite("global_trajectory_real_resized_th.png", th)
 
   # Remove noise
-  kernel = np.ones((10,10),np.uint8)
+  kernel = np.ones((5,5),np.uint8)
   th = cv.morphologyEx(th, cv.MORPH_OPEN, kernel)
 
   # Detect connected components
