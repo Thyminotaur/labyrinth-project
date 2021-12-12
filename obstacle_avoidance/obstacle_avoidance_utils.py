@@ -1,3 +1,5 @@
+# Compute the speed command to avoid obstacles
+# The function is based on a simple weighted sum (single neuron)
 def obstacle_avoidance_speed(prox):
   obstThr = 1000
   obstacleGain = 0.05
