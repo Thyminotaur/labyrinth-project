@@ -1,5 +1,5 @@
 # labyrinth-project
-Project for Mobile Robotics
+Project for Mobile Robotics.
 
 Main: [main_script.py](main_script.py)
 
