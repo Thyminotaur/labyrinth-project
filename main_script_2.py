@@ -231,7 +231,7 @@ while M is not None:
     global_path = global_path.reshape((-1, 1, 2))
     cv.polylines(dst,[global_path],False,(255, 255, 0))
         
-    cv.imshow('my webcam', img)
+    #cv.imshow('my webcam', img)
     cv.imshow('transformed', dst)
         # cv.imshow('labyrinth', laby)
 

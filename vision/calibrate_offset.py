@@ -25,7 +25,7 @@ while True:
 
   detected = detect_aruco(img_gray)
 
-  if not fix_center:
+  if fix_center:
     (_, center, angle) = localize_thymio(detected)
 
   key = cv.waitKey(1)
@@ -45,7 +45,8 @@ while True:
         corner_idx = corner_idx + 1
         thymio_pos.append((center[0], center[1]))
         offset_pos.append((offset_x, offset_y))
-
+        fix_center = True
+        
       if corner_idx > 4:
         break
   elif key == 27: 
