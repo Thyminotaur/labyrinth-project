@@ -3,10 +3,34 @@ Project for Mobile Robotics.
 
 Main: [Main.py](Main.py)
 
-'''
+Requirements
+------------
 
-generate_aruco.py
------------------
+Install the requirements.
+
+```bash
+pip install -r requirements.txt
+```
+
+Make sure `opencv-contrib` is installed
+instead of `opencv`. This is needed to use
+the ArUco utilities.
+
+Usage
+-----
+
+Run the project.
+
+* Deactivate any laptop's webcam in the device manager
+* Connect the external webcam + Thymio
+* Start the project using:
+
+```bash
+python Main.py
+```
+
+Troubleshooting
+---------------
 
 Generate AruCo
 

@@ -205,16 +205,20 @@ def do_adaptive_threshold(img):
   th = cv.adaptiveThreshold(img,255,cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY,31,2)
   return th
 
+# Draw border around ArUco marker
 def draw_aruco(img, corners):
     c = np.int32(corners)
     for i in range(4):
       cv.line(img, c[i], c[(i+1)%4], (255, 0, 0), 2)
 
+# Transform a single point using the perspective matrix
 def transform_perspective_point(M, p):
   px = (M[0,0]*p[0] + M[0,1]*p[1] + M[0,2]) / ((M[2,0]*p[0] + M[2,1]*p[1] + M[2,2]))
   py = (M[1,0]*p[0] + M[1,1]*p[1] + M[1,2]) / ((M[2,0]*p[0] + M[2,1]*p[1] + M[2,2]))
   return (px, py)
 
+# Load data calibrated using vision/calibrate_offset.py
+# This must be called at the beginning once
 def load_z_offset_data(path):
   global offset_interp
 
@@ -225,7 +229,9 @@ def load_z_offset_data(path):
 
   offset_interp = LinearNDInterpolator(thymio_pos, offset_pos, 0)
 
-
+# Once load_z_offset_data() has been loaded
+# this function can be called to get an interpolated offset
+# to estimate the Thymio position on the group
 def get_z_offset(center):
   if offset_interp is not None:
     return offset_interp(center[0], center[1])
