@@ -1,9 +1,6 @@
 import numpy as np
 import math
 
-# Mode rotation rapide : Kp_angle = 4, Kp_dist = 0.5
-
-
 class motors_regulator:
     Kp_angle = 1
     Kp_dist = 1
@@ -33,15 +30,11 @@ def compute_angle(actual_point, point_to_go):
 def compute_regulator_gain(distance, distance_tot):
   if distance < 40 or (distance_tot - distance) < 40:
       Kp_angle = 4
-      #Kp_angle = 1
-      #Kp_dist = 0.2
       Kp_dist = 0.5
 
   elif distance > 40 and (distance_tot - distance) > 40:
       Kp_angle = 1
       Kp_dist = 1
-      #Kp_dist = 0.8
-      #Kp_angle = 0.8
 
   return Kp_angle, Kp_dist
 
@@ -59,9 +52,6 @@ def compute_motor_speed(angle_error, regulator, is_finished):
   elif angle_error > 180 :
     angle_error = -360 + angle_error
       
-  #motor_L = (regulator.Kp_dist * (180-abs(angle_error)))**2 + regulator.Kp_angle * angle_error
-  #motor_R = (regulator.Kp_dist * (180-abs(angle_error)))**2 - regulator.Kp_angle * angle_error
-
   motor_L = (regulator.Kp_dist * (180-abs(angle_error))) + regulator.Kp_angle * angle_error
   motor_R = (regulator.Kp_dist * (180-abs(angle_error))) - regulator.Kp_angle * angle_error
 

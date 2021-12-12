@@ -1,15 +1,13 @@
 import numpy as np
-import random as rand
 import math
-from time import sleep
 from timeit import default_timer as timer
 import cv2 as cv
+from tdmclient import ClientAsync, aw
+
 from vision.vision_utils import *
 from navigation.nav_global_utils import *
 from obstacle_avoidance.src.obstacle_avoid_short import *
 from filter.kalman import *
-from tdmclient import ClientAsync, aw
-import pdb
 from motion.motion_utils import *
 from obstacle_avoidance.obstacle_avoidance_utils import *
     
@@ -24,20 +22,15 @@ cam = cv.VideoCapture(0, cv.CAP_DSHOW)
 cam.set(cv.CAP_PROP_FRAME_WIDTH, 1280)
 cam.set(cv.CAP_PROP_FRAME_HEIGHT, 720)
 
-# Detect corners
-# Compute camera transformation matrix
 M = None
 
 print("\nSearching corners");
 
-while True:
-    M = calibrate_corners(cam)
-    if M is not None:
-        break
-    if M is None:
-        break
+# Detect corners
+# Compute camera transformation matrix
+M = calibrate_corners(cam)
 
-print("\nLabyrinth map % and find Thymio")
+print("\nLabyrinth map and find Thymio")
 
 if M is not None:
     # Get the labyrinth map
@@ -155,11 +148,11 @@ while M is not None:
       offset = get_z_offset(center)
       offset_center = center + np.array(offset)
       offset_center = transform_perspective_point(M, offset_center)
-      cv.drawMarker(dst, np.int32(offset_center), (0, 255, 255), markerSize=40, thickness=4)
+      
 
     center = offset_center
 
-    ################################ MOTION CONTROL ###############################
+    ################################ KALMAN FILTER ###############################
 
     ## START Kalman filter
     if start_time is not None: loop_time = timer() - start_time
@@ -177,21 +170,16 @@ while M is not None:
     angle_filtered = kalmanFilter.X[IDX_THETA]
     ## END Kalman filter
 
-    #if angle is not None and center is not None:
+    ################################ MOTION CONTROL ###############################    
+
+    # Compute the point to go
     actual_point, point_to_go, prev_point_to_go, is_finished = set_point_to_go(center, actual_point, prev_point_to_go, point_to_go, global_trajectory, distance, is_finished)
 
     # Position and orientation of the thymio
     thymio.alpha = 180.0 * angle_filtered / math.pi
-    #thymio.alpha = 180.0 * angle / math.pi
     thymio.position = center_filtered
-    #thymio.position = center
     thymio.x = center_filtered[0]
-    #thymio.x = center[0]
     thymio.y = center_filtered[1]
-    #thymio.y = center[1]
-
-#    print(str(thymio.x) + "\t" + str(thymio.y) + "\t" + str(thymio.alpha))
-
 
     distance = compute_distance(thymio.position, point_to_go)
     distance_tot = compute_distance(prev_point_to_go, point_to_go)
@@ -210,38 +198,32 @@ while M is not None:
     motor_L += motor_L_obstacle
     motor_R += motor_R_obstacle
 
-    #aw(node.set_variables(motors(motor_L, motor_R)))
     aw(node.set_variables(motors(motor_L, motor_R)))
-    #aw(node.set_variables(motors(0, 0)))
+        
+    #################################### SHOW IMAGE ################################
 
     # Draw indications
     cv.circle(dst, (int(thymio.x), int(thymio.y)), 40, (255,255,255))
     cv.circle(dst, (int(thymio.x), int(thymio.y)), 20, (255,255,255))
-    if center is not None:
-        cv.circle(dst, (int(center[0]), int(center[1])), 30, (0,255,255))
     cv.line(dst, (int(thymio.x), int(thymio.y)), (point_to_go[0], point_to_go[1]), (255,255,255), 5)
+    
+    if center is not None:
+        cv.drawMarker(dst, np.int32(offset_center), (0, 255, 255), markerSize=40, thickness=4)
 
-##        ## TMP COMMENT FOR KALMAN TEST
-##    else :
-##        aw(node.set_variables(motors(0, 0)))
-        #################################### SHOW IMAGE ################################
-
-          # set the path in red
+    # set the path
     global_path = np.asarray(global_trajectory, np.int32)
     global_path = global_path.reshape((-1, 1, 2))
     cv.polylines(dst,[global_path],False,(255, 255, 0))
         
-    #cv.imshow('my webcam', img)
     cv.imshow('transformed', dst)
-        # cv.imshow('labyrinth', laby)
+
+    #################################### USER STOP ################################    
 
     key = cv.waitKey(1)
     if key == 27: 
-        break  # esc to quit
+        break  # Press esc to quit
 
-    #sleep(0.010)
-
-"""################################## END ############################"""    
+################################## END ############################    
 
 aw(node.set_variables(motors(0, 0)))
 aw(node.unlock())
