@@ -18,11 +18,8 @@ thymio = robot_position()
 
 # Open Camera
 cam = cv.VideoCapture(0, cv.CAP_DSHOW)
-
 cam.set(cv.CAP_PROP_FRAME_WIDTH, 1280)
 cam.set(cv.CAP_PROP_FRAME_HEIGHT, 720)
-
-M = None
 
 print("\nSearching corners");
 
@@ -32,74 +29,73 @@ M = calibrate_corners(cam)
 
 print("\nLabyrinth map and find Thymio")
 
-if M is not None:
-    # Get the labyrinth map
+# Get the labyrinth map
+ret_val, img = cam.read()
+dst = crop_labyrinth(img, M)
+dst_gray = cv.cvtColor(dst, cv.COLOR_BGR2GRAY)
+labyrinth_map = detect_labyrinth(dst_gray)
+initial_center = None
+
+while initial_center is None:  
+    # Localize thymio
     ret_val, img = cam.read()
     dst = crop_labyrinth(img, M)
     dst_gray = cv.cvtColor(dst, cv.COLOR_BGR2GRAY)
-    labyrinth_map = detect_labyrinth(dst_gray)
-    initial_center = None
-  
-    while initial_center is None:  
-        # Localize thymio
-        ret_val, img = cam.read()
-        dst = crop_labyrinth(img, M)
-        dst_gray = cv.cvtColor(dst, cv.COLOR_BGR2GRAY)
-        detected = detect_aruco(dst_gray)
-        (_, initial_center, _) = localize_thymio(detected)
+    detected = detect_aruco(dst_gray)
+    (_, initial_center, _) = localize_thymio(detected)
 
 #######################################PATH FINDING ##########################################
-    print("\nStart path finding")
+print("\nStart path finding")
 
-    ### Compute the trajectory 
-    cv.imwrite("labyrinth_map_real.png", labyrinth_map)
+### Compute the trajectory 
+cv.imwrite("labyrinth_map_real.png", labyrinth_map)
 
-    ## Set parameters
-    start = [(int(initial_center[1]),int(initial_center[0]))]
-    goal = find_goal(labyrinth_map)
-    movement_type = "4N"
-    cost = [1, np.sqrt(2), 5]
+## Set parameters
+start = [(int(initial_center[1]),int(initial_center[0]))]
+goal = find_goal(labyrinth_map)
+movement_type = "4N"
+cost = [1, np.sqrt(2), 5]
 
-    # resize for faster computation
-    scale_factor = 10
-    labyrinth_map_reduced, start, goal = resize_data(labyrinth_map, start, goal, scale_factor)
+# resize for faster computation
+scale_factor = 10
+labyrinth_map_reduced, start, goal = resize_data(labyrinth_map, start, goal, scale_factor)
 
-    # check feasibility of start and goal
-    feasible, start = check_feasibility(labyrinth_map_reduced, start, goal)
+# check feasibility of start and goal
+feasible, start = check_feasibility(labyrinth_map_reduced, start, goal)
 
-    if feasible:
-        labyrinth_map_reduced_color = cv.cvtColor(labyrinth_map_reduced, cv.COLOR_GRAY2BGR)
-        labyrinth_map_reduced_color[start[0]] = (0, 255, 0)
+if feasible:
+    labyrinth_map_reduced_color = cv.cvtColor(labyrinth_map_reduced, cv.COLOR_GRAY2BGR)
+    labyrinth_map_reduced_color[start[0]] = (0, 255, 0)
+
+    for pos in goal:
+        labyrinth_map_reduced_color[pos] = (0, 0, 255)
     
-        for pos in goal:
-            labyrinth_map_reduced_color[pos] = (0, 0, 255)
-        
-        cv.imwrite("labyrinth_map_reduced_real.png", labyrinth_map_reduced)
+    cv.imwrite("labyrinth_map_reduced_real.png", labyrinth_map_reduced)
 
-        print("Start and goal are feasible. Starting A*")
+    print("Start and goal are feasible. Starting A*")
 
-        ## find the trajectory
-        # A star call to find the exit with least cost motion
-        global_path, closedSet = A_Star(start, goal, labyrinth_map_reduced, cost, movement_type)
-    
-        if global_path:
-            path_founded = True
-            # Remove unnecessary intermediate position
-            global_trajectory = get_linear_trajectory(global_path)
+    ## find the trajectory
+    # A star call to find the exit with least cost motion
+    global_path, closedSet = A_Star(start, goal, labyrinth_map_reduced, cost, movement_type)
 
-            # Resize to original size
-            global_trajectory = scale_up_trajectory(global_trajectory, scale_factor)
+    if global_path:
+        path_founded = True
+        # Remove unnecessary intermediate position
+        global_trajectory = get_linear_trajectory(global_path)
 
-            # Convert from matrix indexes to cartesian coordinates
-            global_trajectory = [(x, y) for y, x in global_trajectory]
-        
-        else:
-            print("\nGlobal path is wrong")
+        # Resize to original size
+        global_trajectory = scale_up_trajectory(global_trajectory, scale_factor)
+
+        # Convert from matrix indexes to cartesian coordinates
+        global_trajectory = [(x, y) for y, x in global_trajectory]
     
     else:
-        print("Current initial configuration NOT feasible")
-        path_founded = False
-        global_trajectory = []
+        print("\nGlobal path is wrong")
+
+else:
+    print("Current initial configuration NOT feasible")
+    path_founded = False
+    global_trajectory = []
 
 # Load calibration data for z offset
 load_z_offset_data("data/z_offset.bin")
@@ -127,7 +123,7 @@ aw(node.lock())
 
 print("\nThymio connected")
 
-while M is not None:
+while True:
 
     aw(node.wait_for_variables({"prox.horizontal"}))
 
@@ -148,7 +144,6 @@ while M is not None:
       offset = get_z_offset(center)
       offset_center = center + np.array(offset)
       offset_center = transform_perspective_point(M, offset_center)
-      
 
     center = offset_center
 
@@ -203,12 +198,12 @@ while M is not None:
     #################################### SHOW IMAGE ################################
 
     # Draw indications
-    cv.circle(dst, (int(thymio.x), int(thymio.y)), 40, (255,255,255))
-    cv.circle(dst, (int(thymio.x), int(thymio.y)), 20, (255,255,255))
+    cv.circle(dst, (int(thymio.x), int(thymio.y)), DISTANCE_TO_CHANGE_GAIN, (255,255,255))
+    cv.circle(dst, (int(thymio.x), int(thymio.y)), DISTANCE_TO_SET_NEXT_POINT, (255,255,255))
     cv.line(dst, (int(thymio.x), int(thymio.y)), (point_to_go[0], point_to_go[1]), (255,255,255), 5)
     
     if center is not None:
-        cv.drawMarker(dst, np.int32(offset_center), (0, 255, 255), markerSize=40, thickness=4)
+        cv.drawMarker(dst, np.int32(offset_center), (0, 255, 255), markerSize=30, thickness=4)
 
     # set the path
     global_path = np.asarray(global_trajectory, np.int32)
