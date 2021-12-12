@@ -1,21 +1,9 @@
 # labyrinth-project
 Project for Mobile Robotics.
 
-Main: [main_script.py](main_script.py)
+Main: [Main.py](Main.py)
 
-vision_utils
-------------
-
-```python
-detect_aruco(img)
-get_pos_aruco(img, detected, search_id)
-localize_thymio(img, detected)
-erase_aruco(img, detected)
-detect_labyrinth(img, wall_size)
-get_labyrinth_perspective(img)
-crop_labyrinth(img, M)
-calibrate_corners(cam)
-```
+'''
 
 generate_aruco.py
 -----------------
