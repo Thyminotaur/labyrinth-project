@@ -56,12 +56,6 @@ class kalmanEKF():
 
     def filter(self, dt, Zs, Zc = None):
         Zs = np.asarray(Zs).reshape((NB_SPEED_STATES,1))
-
-        if self.i<10:
-            self.i+=1
-        else:
-           pass
-
         if Zc is not None:
             Zc = np.asarray(Zc).reshape((NB_CAM_STATES, 1))
             if Zc[IDX_THETA] < 0: Zc[IDX_THETA] += 2*np.pi

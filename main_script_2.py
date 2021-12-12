@@ -65,7 +65,7 @@ if M is not None:
     start = [(int(initial_center[1]),int(initial_center[0]))]
     goal = find_goal(labyrinth_map)
     movement_type = "4N"
-    cost = [1, np.sqrt(2), 1]
+    cost = [1, np.sqrt(2), 5]
 
     # resize for faster computation
     scale_factor = 10
@@ -164,18 +164,17 @@ while M is not None:
     ## START Kalman filter
     if start_time is not None: loop_time = timer() - start_time
     start_time = timer()
-    print(loop_time)
 
     if (center is not None) and (angle is not None):
         camera_measure = [center[0], -center[1], angle]
     else:
         camera_measure = None
-        
     speed_measure = [node.v.motor.right.speed, node.v.motor.left.speed]
 
-    states, _ = kalmanFilter.filter(loop_time, speed_measure, camera_measure)
-    center_filtered = (states[IDX_PX],-states[IDX_PY])
-    angle_filtered = states[IDX_THETA]
+    kalmanFilter.filter(loop_time, speed_measure, camera_measure)
+
+    center_filtered = (kalmanFilter.X[IDX_PX],-kalmanFilter.X[IDX_PY])
+    angle_filtered = kalmanFilter.X[IDX_THETA]
     ## END Kalman filter
 
     #if angle is not None and center is not None:
@@ -211,6 +210,7 @@ while M is not None:
     motor_L += motor_L_obstacle
     motor_R += motor_R_obstacle
 
+    #aw(node.set_variables(motors(motor_L, motor_R)))
     aw(node.set_variables(motors(motor_L, motor_R)))
     #aw(node.set_variables(motors(0, 0)))
 
