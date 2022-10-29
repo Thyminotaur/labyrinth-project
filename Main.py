@@ -6,7 +6,6 @@ from tdmclient import ClientAsync, aw
 
 from vision.vision_utils import *
 from navigation.nav_global_utils import *
-from obstacle_avoidance.src.obstacle_avoid_short import *
 from filter.kalman import *
 from motion.motion_utils import *
 from obstacle_avoidance.obstacle_avoidance_utils import *
